@@ -96,11 +96,12 @@ void DrawLineMidpoint(HDC hdc, int X1, int Y1, int X2, int Y2, COLORREF c)
 void DrawLineParametric(HDC hdc, int X1, int Y1, int X2, int Y2, COLORREF c) {
 
     int dx = X2 - X1; int dy = Y2 - Y1;
+    double step = 1.0 / max(abs(dx),abs(dy));
     double t;
-    for (t = 0.0; t <= 1.0; t += 0.001) {
-        int x = round(X1 + t * dx);
-        int y = round(Y1 + t * dy);
-        SetPixel(hdc, x, y, c);
+    for (t = 0.0; t <= 1.0; t += step) {
+        int x = dx * t + X1;
+        int y = dy * t + Y1;
+        SetPixel(hdc, Round(x), Round(y), c);
     }
 
 }
