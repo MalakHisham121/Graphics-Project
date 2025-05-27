@@ -3,6 +3,9 @@
 
 #include <Windows.h>
 #include <cmath>
+#include <algorithm>
+
+using namespace std;
 
 int Round(double x)
 {
@@ -233,6 +236,91 @@ void DrawCircleModifiedMidpoint(HDC hdc, int Xc, int Yc, int R, COLORREF c)
         x++;
         Draw8Points(hdc, Xc, Yc, x, y, c);
     }
+}
+// 15. Convex and Non-Convex Filling Algorithm
+// Convex Polygon algorithm 
+// Data Structure
+#define MAXENTRIES 800
+struct edgeTable{
+
+    int xLeft;
+    int xRight;
+};
+struct Point {
+
+    double x, y;
+    Point(double x = 0,double y = 0):x(x),y(y){}
+};
+// Utaliit Functions
+//1.Initialize
+void InitalizeTable(edgeTable tbl[]) {
+    for (int i = 0; i < MAXENTRIES; i++) {
+        tbl[i].xLeft = 100000;
+        tbl[i].xRight = -100000;
+    }
+}
+//2. Evalate edge
+void ScanEdge(Point P1, Point P2, edgeTable tbl[]) {
+    if (P1.y == P2.y) return;
+    if (P1.y > P2.y) swap(P1, P2);
+    int y = P1.y; int x = P1.x;
+    double inversSlope = (P2.x - P1.x) / (P2.y - P1.y);
+    while (y < P2.y) {
+        if (x < tbl[y].xLeft) {
+            tbl[y].xLeft = (int)ceil(x);
+        }
+        if (x > tbl[y].xRight) {
+            tbl[y].xRight = (int)floor(x);
+        }
+        y++;
+        x += inversSlope;
+    }
+}
+//3.raw scan lines stored in the table
+void Ploygon2Table(Point P[], int n, edgeTable tbl[]) {
+    Point P1 = P[n - 1];
+    for (int i = 0; i < n; i++)
+    {
+        Point P2 = P[i];
+        ScanEdge(P1, P2, tbl);
+        P1 = P[i];
+    }
+
+}
+//4.draw scan lines to screen
+
+void DrawPloygonLine(HDC hdc, edgeTable tbl[], COLORREF c) {
+    for (int y = 0; y < MAXENTRIES; y++) {
+        if (tbl[y].xLeft < tbl[y].xRight) {
+            // Draw a visible horizontal line on this scanline
+            DrawLineMidpoint(hdc, tbl[y].xLeft, y, tbl[y].xRight, y, c);
+        }
+    }
+}
+
+//5. main function of the algorithm
+void ConvexFill(HDC hdc, Point P[], int n, COLORREF c) {
+    edgeTable tbl[MAXENTRIES]; 
+    InitalizeTable(tbl);
+    Ploygon2Table(P, n, tbl);
+    DrawPloygonLine(hdc, tbl, c);
+
+}
+// 16. Recursive and Non-Recursive Flood Fill
+//1.Recursive Flood Fill
+void FloodFill(HDC hdc, int x, int y, COLORREF bc, COLORREF fc) {
+   COLORREF c = GetPixel(hdc, x, y);
+   if (c == bc || c == fc) {
+       return;
+   }
+   SetPixel(hdc, x, y, fc);
+
+   FloodFill(hdc, x + 1, y, bc, fc);
+   FloodFill(hdc, x - 1, y, bc, fc);
+   FloodFill(hdc, x , y - 1, bc, fc);
+   FloodFill(hdc, x , y + 1, bc, fc);
+
+
 }
 
 
