@@ -135,6 +135,8 @@ void DrawLineDirect(HDC hdc, int X1, int Y1, int X2, int Y2, COLORREF c) {
     }
 }
 
+//****************************************************************************************************************//
+
 // 10. Implement Circle algorithms[Direct, Polar, iterative Polar, midpoint and modified Midpoint]
 
 void Draw8Points(HDC hdc, int Xc, int Yc, int x, int y, COLORREF c) {
@@ -238,11 +240,173 @@ void DrawCircleModifiedMidpoint(HDC hdc, int Xc, int Yc, int R, COLORREF c)
         Draw8Points(hdc, Xc, Yc, x, y, c);
     }
 }
+
+//****************************************************************************************************************//
+
+//11. Filling Circle with lines after taking filling quarter from user
+void FillingCircleWithLines(HDC hdc, int xc, int yc, int R, int quarter, int step, COLORREF color) {
+    for (int y = -R; y <= R; y += step) {
+        for (int x = -R; x <= R; x += step) {
+            // (X*X) + (Y*Y) = R*R
+            int dx = x;
+            int dy = y;
+            // draw in boundries
+            if (dx * dx + dy * dy <= R * R) {
+                bool drawLines = false;
+                // Positive y goes downward.
+                switch (quarter) {
+                    // quarter 1
+                case 1: 
+                    if (dx >= 0 && dy <= 0)
+                        drawLines = true;
+                    break;
+                    // quarter 2
+                case 2: 
+                    if (dx <= 0 && dy <= 0)
+                        drawLines = true; 
+                    break;
+                    // quarter 3
+                case 3: 
+                    if (dx <= 0 && dy >= 0)
+                        drawLines = true; 
+                    break;
+                    // quarter 4 
+                case 4: 
+                    if (dx >= 0 && dy >= 0) 
+                        drawLines = true;
+                    break;
+
+                }
+
+                if (drawLines) {
+                    // Calculate how far we can draw in x-direction to the circle edge
+                    int Xdistance = (int)sqrt(R * R - dy * dy);
+
+                    int x1 = xc, x2 = xc;
+
+                    if (quarter == 1 || quarter == 4) {
+                        x1 = xc;
+                        x2 = xc + Xdistance;
+                    }
+                    else if (quarter == 2 || quarter == 3) {
+                        x1 = xc - Xdistance;
+                        x2 = xc;
+
+                    }
+
+                    DrawLineMidpoint(hdc, x1, yc + dy, x2, yc + dy, color);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+//****************************************************************************************************************//
+
+//12. Filling Circle with other circles after taking filling quarter from user
+void FillingCircleWithCircles(HDC hdc, int xc, int yc, int R, int quarter, int inraduis, COLORREF color) {
+    for (int y = -R; y <= R; y += 2 * inraduis) {
+        for (int x = -R; x <= R; x += 2 * inraduis) {
+            int dx = xc + x;
+            int dy = yc + y;
+            // Ensure the small circle center is inside the big circle
+            if ((x * x + y * y <= R * R)) {
+                bool drawCircles = false;
+
+                switch (quarter) {
+                 // quarter 1
+                case 1: 
+                    if (x >= 0 && y <= 0) 
+                        drawCircles = true; 
+                    break;
+                 //   quarter 2
+                case 2: 
+                    if (x <= 0 && y <= 0) 
+                        drawCircles = true; 
+                    break;
+                    // quarter 3
+                case 3: 
+                    if (x <= 0 && y >= 0) 
+                        drawCircles = true; 
+                    break;
+                    // quarter 4
+                case 4:
+                    if (x >= 0 && y >= 0) 
+                        drawCircles = true;
+                    break;
+
+                }
+
+                if (drawCircles) {
+                    DrawCircleModifiedMidpoint(hdc, dx, dy, inraduis, color);
+                }
+            }
+        }
+    }
+}
+
+//****************************************************************************************************************//
+
+//13. Filling Square with Hermit Curve[Vertical]
+// Hermit Curve 
+void DrawHermitCurve(HDC hdc, int X1, int Y1, int U1, int V1, int X2, int Y2, int U2, int V2, COLORREF C1, COLORREF C2)
+{
+    int alpha1 = 2 * X1 + U1 - 2 * X2 + U2;
+    int beta1 = -3 * X1 - 2 * U1 + 3 * X2 - U2;
+    int gama1 = U1;
+    int delta1 = X1;
+
+
+    int alpha2 = 2 * Y1 + V1 - 2 * Y2 + V2;
+    int beta2 = -3 * Y1 - 2 * V1 + 3 * Y2 - V2;
+    int gama2 = V1;
+    int delta2 = Y1;
+
+    // extract colore values
+    //Red Color
+    int r1 = GetRValue(C1);
+    int r2 = GetRValue(C2);
+    // Green Color
+    int g1 = GetGValue(C1);
+    int g2 = GetGValue(C2);
+    // Blue Color
+    int b1 = GetBValue(C1);
+    int b2 GetBValue(C2);
+
+    int alphaR = r2 - r1;
+    int alphaG = g2 - g1;
+    int alphaB = b2 - b1;
+
+    double numberOfPoints = 100.0;
+    double step = 1.0 / numberOfPoints;
+
+    for (double t = 0; t <= 1; t += step) {
+
+        int X = alpha1 * (t * t * t) + beta1 * (t * t) + gama1 * t + delta1;
+        int Y = alpha2 * (t * t * t) + beta2 * (t * t) + gama2 * t + delta2;
+
+        int R = Round(alphaR * t + r1);
+        int G = Round(alphaG * t + g1);
+        int B = Round(alphaB * t + b1);
+
+        SetPixel(hdc, Round(X), Round(Y), RGB(R, G, B));
+
+    }
+
+}
+
+//****************************************************************************************************************//
+
+//14. Filling Rectangle with Bezier Curve[horizontal]
+
+//****************************************************************************************************************//
+
 // 15. Convex and Non-Convex Filling Algorithm
 // Convex Polygon algorithm 
 // Data Structure
 #define MAXENTRIES 800
-struct edgeTable{
+struct edgeTable {
 
     int xLeft;
     int xRight;
@@ -250,7 +414,7 @@ struct edgeTable{
 struct Point {
 
     double x, y;
-    Point(double x = 0,double y = 0):x(x),y(y){}
+    Point(double x = 0, double y = 0) :x(x), y(y) {}
 };
 // Utaliit Functions
 //1.Initialize
@@ -301,28 +465,32 @@ void DrawPloygonLine(HDC hdc, edgeTable tbl[], COLORREF c) {
 
 //5. main function of the algorithm
 void ConvexFill(HDC hdc, Point P[], int n, COLORREF c) {
-    edgeTable tbl[MAXENTRIES]; 
+    edgeTable tbl[MAXENTRIES];
     InitalizeTable(tbl);
     Ploygon2Table(P, n, tbl);
     DrawPloygonLine(hdc, tbl, c);
 
 }
+
+//****************************************************************************************************************//
+
 // 16. Recursive and Non-Recursive Flood Fill
 //1.Recursive Flood Fill
 void FloodFill(HDC hdc, int x, int y, COLORREF bc, COLORREF fc) {
-   COLORREF c = GetPixel(hdc, x, y);
-   if (c == bc || c == fc) {
-       return;
-   }
-   SetPixel(hdc, x, y, fc);
+    COLORREF c = GetPixel(hdc, x, y);
+    if (c == bc || c == fc) {
+        return;
+    }
+    SetPixel(hdc, x, y, fc);
 
-   FloodFill(hdc, x + 1, y, bc, fc);
-   FloodFill(hdc, x - 1, y, bc, fc);
-   FloodFill(hdc, x , y - 1, bc, fc);
-   FloodFill(hdc, x , y + 1, bc, fc);
+    FloodFill(hdc, x + 1, y, bc, fc);
+    FloodFill(hdc, x - 1, y, bc, fc);
+    FloodFill(hdc, x, y - 1, bc, fc);
+    FloodFill(hdc, x, y + 1, bc, fc);
 
 
 }
+
 
 
 int X1, Y1, X2, Y2; // Global variables to store line endpoints
@@ -336,9 +504,9 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
     {
     case WM_LBUTTONDOWN:
         // Store the first click (starting point of the line)
- /*      X1 = LOWORD(lp);
-        Y1 = HIWORD(lp);
-        break;*/
+        //X1 = LOWORD(lp);
+        //Y1 = HIWORD(lp);
+        //break;
 
         // Assume center of circle
         Xc = LOWORD(lp);
@@ -350,17 +518,19 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
             // For circles
         int X = LOWORD(lp);
         int Y = HIWORD(lp);
+        hdc = GetDC(hwnd);
+
         // calculate raduis
         R = Round(sqrt((X - Xc) * (X - Xc) + (Y - Yc) * (Y - Yc)));
 
         
         // Store the second click (ending point of the line)
-        //X2 = LOWORD(lp);
-        //Y2 = HIWORD(lp);
+ /*       X2 = LOWORD(lp);
+        Y2 = HIWORD(lp);*/
 
 
         // Draw the line
-        hdc = GetDC(hwnd);
+        //hdc = GetDC(hwnd);
 
                      //// Lines /////
 
@@ -375,9 +545,9 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
       //  DrawCircleDirect(hdc, Xc, Yc, R, RGB(255, 0, 0));
       //  DrawCirclePolar(hdc, Xc, Yc, R, RGB(0, 255, 0));
       //  DrawCircleIterativePolar(hdc, Xc, Yc, R, RGB(0, 0, 255));
-       // DrawCircleMidpoint(hdc, Xc, Yc, R, RGB(255, 255, 0));
-        DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 255, 255));
-
+        DrawCircleMidpoint(hdc, Xc, Yc, R, RGB(255, 255, 0));
+        FillingCircleWithCircles(hdc, Xc, Yc, R, 2, 3, RGB(255, 0, 0));
+        //FillingCircleWithLines(hdc, Xc, Yc, R, 2, 5, RGB(255, 0, 0));
 
 
 
@@ -390,6 +560,8 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
     {
         PAINTSTRUCT ps;
         hdc = BeginPaint(hwnd, &ps);
+        //DrawQuarterFilledWithLines(hdc, Xc, Yc, R, 1, 5, RGB(255, 0, 0));
+
 
         // Redraw the line when window repaints
                       //// Lines /////
@@ -405,7 +577,7 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
       //  DrawCirclePolar(hdc, Xc, Yc, R, RGB(0, 0, 0));
        // DrawCircleIterativePolar(hdc, Xc, Yc, R, RGB(0, 0, 0));
       //  DrawCircleMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
-        DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+       // DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
 
  
 
