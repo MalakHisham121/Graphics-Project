@@ -15,32 +15,21 @@ int Round(double x)
 // 9. Implement line algorithms [DDA, Midpoint and parametric]
 // 1. DDA
 void DrawLineDDA(HDC hdc, int X1, int Y1, int X2, int Y2, COLORREF c) {
+    int dx = X2 - X1;
+    int dy = Y2 - Y1;
 
-    int dx = X2 - X1; int dy = Y2 - Y1;
-    SetPixel(hdc, X1, Y1, c);
+    int steps = max(abs(dx), abs(dy));
 
-    if (abs(dx) >= abs(dy)) {
-        double slope = (double) dy / dx;
-        int X = X1;
-        double Y = Y1;
-        while (X < X2) {
-            X++;
-            Y += slope;
-            SetPixel(hdc, X, Round(Y), c);
+    double xIncrement = dx / (double)steps;
+    double yIncrement = dy / (double)steps;
 
-        }
-    }
-    else {
-        double slopeInverse = (double) dx / dy;
-        int Y = Y1;
-        double X = X1;
-        while (Y < Y2) {
-            Y++;
-            X += slopeInverse;
-            SetPixel(hdc,Round(X), Y, c);
+    double x = X1;
+    double y = Y1;
 
-        }
-
+    for (int i = 0; i <= steps; i++) {
+        SetPixel(hdc, Round(x), Round(y), c);
+        x += xIncrement;
+        y += yIncrement;
     }
 }
 
@@ -350,7 +339,7 @@ void FillingCircleWithCircles(HDC hdc, int xc, int yc, int R, int quarter, int i
 
 //13. Filling Square with Hermit Curve[Vertical]
 // Hermit Curve 
-void DrawHermitCurve(HDC hdc, int X1, int Y1, int U1, int V1, int X2, int Y2, int U2, int V2, COLORREF C1, COLORREF C2)
+void DrawHermitCurve(HDC hdc, int X1, int Y1, int U1, int V1, int X2, int Y2, int U2, int V2, COLORREF C1, COLORREF C2, int minX, int minY, int maxX, int maxY)
 {
     int alpha1 = 2 * X1 + U1 - 2 * X2 + U2;
     int beta1 = -3 * X1 - 2 * U1 + 3 * X2 - U2;
@@ -386,14 +375,46 @@ void DrawHermitCurve(HDC hdc, int X1, int Y1, int U1, int V1, int X2, int Y2, in
         int X = alpha1 * (t * t * t) + beta1 * (t * t) + gama1 * t + delta1;
         int Y = alpha2 * (t * t * t) + beta2 * (t * t) + gama2 * t + delta2;
 
-        int R = Round(alphaR * t + r1);
-        int G = Round(alphaG * t + g1);
-        int B = Round(alphaB * t + b1);
 
-        SetPixel(hdc, Round(X), Round(Y), RGB(R, G, B));
+
+        if (X >= minX && X <= maxX && Y >= minY && Y <= maxY) {
+            int R = Round(alphaR * t + r1);
+            int G = Round(alphaG * t + g1);
+            int B = Round(alphaB * t + b1);
+            SetPixel(hdc, X, Y, RGB(R, G, B));
+        }
+
 
     }
 
+}
+
+void DrawSquare(HDC hdc, int x1, int y1, int length, COLORREF c) {
+    int x2 = x1 + length;
+    int y2 = y1 + length;
+
+    // Draw four sides
+    DrawLineDDA(hdc, x1, y1, x2, y1, c); // Top
+    DrawLineDDA(hdc, x2, y1, x2, y2, c); // Right
+    DrawLineDDA(hdc, x2, y2, x1, y2, c); // Bottom
+    DrawLineDDA(hdc, x1, y2, x1, y1, c); // Left
+}
+
+void FillingSquareWithHermiteCurves(HDC hdc, int x1, int y1, int length, int step, COLORREF bc, COLORREF fc) {
+    int x2 = x1 + length;
+    int y2 = y1 + length;
+
+    for (int y = y1; y <= y2; y += step) {
+        // Hermite curve horizontal line from (x1, y) to (x2, y)
+        int X1 = x1, Y1 = y;
+        int X2 = x2, Y2 = y;
+
+        // Tangents in x direction (horizontal), so vertical component = 0
+        int U1 = length / 2, V1 = 80; // Rightward tangent
+        int U2 = length / 2, V2 = -80; // Rightward tangent
+
+        DrawHermitCurve(hdc, X1, Y1, U1, V1, X2, Y2, U2, V2, bc, fc, x1, y1, x2, y2);
+    }
 }
 
 //****************************************************************************************************************//
@@ -491,10 +512,13 @@ void FloodFill(HDC hdc, int x, int y, COLORREF bc, COLORREF fc) {
 
 }
 
-
-
-int X1, Y1, X2, Y2; // Global variables to store line endpoints
-int Xc, Yc, R;  // Circle
+// Global variables
+//int X1 = 0, Y1 = 0, X2 = 0, Y2 = 0;
+//int U1 = 100, V1 = -200, U2 = 100, V2 = 200;
+// Global variables to store line endpoints
+int X1, Y1, X2, Y2;
+// Global variables to Circle
+int Xc, Yc, R;  
 
 
 LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
@@ -504,14 +528,14 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
     {
     case WM_LBUTTONDOWN:
         // Store the first click (starting point of the line)
-        //X1 = LOWORD(lp);
-        //Y1 = HIWORD(lp);
-        //break;
+        X1 = LOWORD(lp);
+        Y1 = HIWORD(lp);
+        break;
 
         // Assume center of circle
-        Xc = LOWORD(lp);
-        Yc = HIWORD(lp);
-        break;
+        //Xc = LOWORD(lp);
+        //Yc = HIWORD(lp);
+        //break;
 
     case WM_LBUTTONUP:
     {
@@ -521,16 +545,15 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
         hdc = GetDC(hwnd);
 
         // calculate raduis
-        R = Round(sqrt((X - Xc) * (X - Xc) + (Y - Yc) * (Y - Yc)));
+        //R = Round(sqrt((X - Xc) * (X - Xc) + (Y - Yc) * (Y - Yc)));
 
         
         // Store the second click (ending point of the line)
- /*       X2 = LOWORD(lp);
-        Y2 = HIWORD(lp);*/
+        X2 = LOWORD(lp);
+        Y2 = HIWORD(lp);
 
 
         // Draw the line
-        //hdc = GetDC(hwnd);
 
                      //// Lines /////
 
@@ -539,15 +562,37 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
       //  DrawLineParametric(hdc, X1, Y1, X2, Y2, RGB(0, 0, 255));
      //   DrawLineDirect(hdc, X1, Y1, X2, Y2, RGB(0, 0, 0));
 
+    // Compute deltas
+        int dx = X2 - X1;
+        int dy = Y2 - Y1;
+
+        // Use the larger of dx or dy as the square side length (preserve direction)
+        int length = max(abs(dx), abs(dy));
+
+        // Adjust the second point to form a square keeping direction
+        if (dx < 0) X2 = X1 - length;
+        else        X2 = X1 + length;
+
+        if (dy < 0) Y2 = Y1 - length;
+        else        Y2 = Y1 + length;
+
+        // Draw the square from (X1, Y1) with calculated side length
+        DrawSquare(hdc, X1, Y1, length, RGB(255, 0, 0));
+
+        FillingSquareWithHermiteCurves(hdc, X1, Y1, length, 5, RGB(255, 0, 0), RGB(0, 0, 255));
+
+
+
                 //// Circles /////
         
 
       //  DrawCircleDirect(hdc, Xc, Yc, R, RGB(255, 0, 0));
       //  DrawCirclePolar(hdc, Xc, Yc, R, RGB(0, 255, 0));
       //  DrawCircleIterativePolar(hdc, Xc, Yc, R, RGB(0, 0, 255));
-        DrawCircleMidpoint(hdc, Xc, Yc, R, RGB(255, 255, 0));
-        FillingCircleWithCircles(hdc, Xc, Yc, R, 2, 3, RGB(255, 0, 0));
+       // DrawCircleMidpoint(hdc, Xc, Yc, R, RGB(255, 255, 0));
+       // FillingCircleWithCircles(hdc, Xc, Yc, R, 2, 3, RGB(255, 0, 0));
         //FillingCircleWithLines(hdc, Xc, Yc, R, 2, 5, RGB(255, 0, 0));
+
 
 
 
