@@ -404,14 +404,14 @@ void FillingSquareWithHermiteCurves(HDC hdc, int x1, int y1, int length, int ste
     int x2 = x1 + length;
     int y2 = y1 + length;
 
-    for (int y = y1; y <= y2; y += step) {
-        // Hermite curve horizontal line from (x1, y) to (x2, y)
-        int X1 = x1, Y1 = y;
-        int X2 = x2, Y2 = y;
+    for (int x = x1; x <= x2; x += step) {
+        // Hermite curve Vertical line from (x, y1) to (x, y2)
+        int Y1 = y1, X1 = x;
+        int Y2 = y2, X2 = x;
 
-        // Tangents in x direction (horizontal), so vertical component = 0
-        int U1 = length / 2, V1 = 80; // Rightward tangent
-        int U2 = length / 2, V2 = -80; // Rightward tangent
+        // Tangents in x direction (Vertical), so vertical component = 0
+        int U1 = 80, V1 = length / 2; 
+        int U2 = 150 / 2, V2 = -length / 2; 
 
         DrawHermitCurve(hdc, X1, Y1, U1, V1, X2, Y2, U2, V2, bc, fc, x1, y1, x2, y2);
     }
@@ -420,10 +420,110 @@ void FillingSquareWithHermiteCurves(HDC hdc, int x1, int y1, int length, int ste
 //****************************************************************************************************************//
 
 //14. Filling Rectangle with Bezier Curve[horizontal]
+// Bezier Curve 
+
+struct Point
+{
+    double X, Y;
+
+    Point(double x = 0, double y = 0) :X(x), Y(y) {}
+
+};
+
+void BezierCurveInterpolated(HDC hdc, Point P1, COLORREF C1, Point P2, COLORREF C2, Point P3, COLORREF C3, Point P4, COLORREF C4, int xmin, int ymin, int xmax, int ymax)
+{
+    double alpha1 = -P1.X + 3 * P2.X - 3 * P3.X + P4.X;
+    double beta1 = 3 * P1.X - 6 * P2.X + 3 * P3.X;
+    double gamma1 = -3 * P1.X + 3 * P2.X;
+    double sigma1 = P1.X;
+
+    double alpha2 = -P1.Y + 3 * P2.Y - 3 * P3.Y + P4.Y;
+    double beta2 = 3 * P1.Y - 6 * P2.Y + 3 * P3.Y;
+    double gamma2 = -3 * P1.Y + 3 * P2.Y;
+    double sigma2 = P1.Y;
+
+    //  Red
+    double R1 = GetRValue(C1), R2 = GetRValue(C2), R3 = GetRValue(C3), R4 = GetRValue(C4);
+    double alphaR = -R1 + 3 * R2 - 3 * R3 + R4;
+    double betaR = 3 * R1 - 6 * R2 + 3 * R3;
+    double gammaR = -3 * R1 + 3 * R2;
+    double sigmaR = R1;
+
+    // Green
+    double G1 = GetGValue(C1), G2 = GetGValue(C2), G3 = GetGValue(C3), G4 = GetGValue(C4);
+    double alphaG = -G1 + 3 * G2 - 3 * G3 + G4;
+    double betaG = 3 * G1 - 6 * G2 + 3 * G3;
+    double gammaG = -3 * G1 + 3 * G2;
+    double sigmaG = G1;
+
+    // Blue
+    double B1 = GetBValue(C1), B2 = GetBValue(C2), B3 = GetBValue(C3), B4 = GetBValue(C4);
+    double alphaB = -B1 + 3 * B2 - 3 * B3 + B4;
+    double betaB = 3 * B1 - 6 * B2 + 3 * B3;
+    double gammaB = -3 * B1 + 3 * B2;
+    double sigmaB = B1;
+
+    for (double t = 0; t <= 1; t += 0.01)
+    {
+        int X = Round(alpha1 * (t * t * t) + beta1 * (t * t) + gamma1 * t + sigma1);
+        int Y = Round(alpha2 * (t * t * t) + beta2 * (t * t) + gamma2 * t + sigma2);
+
+        // Check boundaries before drawing pixel
+        if (X >= xmin && X <= xmax && Y >= ymin && Y <= ymax) {
+            int R = Round(alphaR * t * t * t + betaR * t * t + gammaR * t + sigmaR);
+            int G = Round(alphaG * t * t * t + betaG * t * t + gammaG * t + sigmaG);
+            int B = Round(alphaB * t * t * t + betaB * t * t + gammaB * t + sigmaB);
+
+            SetPixel(hdc, X, Y, RGB(R, G, B));
+        }
+    }
+}
+
+void DrawRectangle(HDC hdc, int x1, int y1, int length,int width, COLORREF c) {
+    int x2 = x1 + length;
+    int y2 = y1 + width;
+
+    // Draw four sides
+    DrawLineParametric(hdc, x1, y1, x2, y1, c); // Top
+    DrawLineParametric(hdc, x2, y1, x2, y2, c); // Right
+    DrawLineParametric(hdc, x2, y2, x1, y2, c); // Bottom
+    DrawLineParametric(hdc, x1, y2, x1, y1, c); // Left
+}
+
+COLORREF InterpolateColor(COLORREF c1, COLORREF c2, double t) {
+    int R = (int)((1 - t) * GetRValue(c1) + t * GetRValue(c2));
+    int G = (int)((1 - t) * GetGValue(c1) + t * GetGValue(c2));
+    int B = (int)((1 - t) * GetBValue(c1) + t * GetBValue(c2));
+    return RGB(R, G, B);
+}
+
+void FillingRectangleWithBezierCurves(HDC hdc, int x1, int y1, int length, int width, int step, COLORREF bc, COLORREF fc) {
+    int x2 = x1 + length;
+    int y2 = y1 + width;
+
+    // Control points for Bezier Horizontal line at each x coordinate
+    for (int y = y1; y <= y2; y += step) {
+        // Horizontal Bezier from left (x1) to right (x2) at vertical position y
+        double curve = width * 0.3;
+        Point P1(x1, y);
+        Point P2(x1 + length / 4.0, y - curve);  
+        Point P3(x1 + 3 * length / 4.0, y + curve); 
+        Point P4(x2, y);
+
+        double t = double(y - y1) / width;
+
+        COLORREF C1 = InterpolateColor(bc, fc, t);
+        COLORREF C2 = InterpolateColor(bc, fc, t);
+        COLORREF C3 = InterpolateColor(bc, fc, t);
+        COLORREF C4 = InterpolateColor(bc, fc, t);
+
+        BezierCurveInterpolated(hdc, P1, C1, P2, C2, P3, C3, P4, C4, x1, y1, x2, y2);
+    }
+}
 
 //****************************************************************************************************************//
 
-// 15. Convex and Non-Convex Filling Algorithm
+ //15. Convex and Non-Convex Filling Algorithm
 // Convex Polygon algorithm 
 // Data Structure
 #define MAXENTRIES 800
@@ -432,11 +532,7 @@ struct edgeTable {
     int xLeft;
     int xRight;
 };
-struct Point {
-
-    double x, y;
-    Point(double x = 0, double y = 0) :x(x), y(y) {}
-};
+// Use Struct Point from above ^_^
 // Utaliit Functions
 //1.Initialize
 void InitalizeTable(edgeTable tbl[]) {
@@ -447,11 +543,11 @@ void InitalizeTable(edgeTable tbl[]) {
 }
 //2. Evalate edge
 void ScanEdge(Point P1, Point P2, edgeTable tbl[]) {
-    if (P1.y == P2.y) return;
-    if (P1.y > P2.y) swap(P1, P2);
-    int y = P1.y; int x = P1.x;
-    double inversSlope = (P2.x - P1.x) / (P2.y - P1.y);
-    while (y < P2.y) {
+    if (P1.Y == P2.Y) return;
+    if (P1.Y > P2.Y) swap(P1, P2);
+    int y = P1.Y; int x = P1.X;
+    double inversSlope = (P2.X - P1.X) / (P2.Y - P1.Y);
+    while (y < P2.Y) {
         if (x < tbl[y].xLeft) {
             tbl[y].xLeft = (int)ceil(x);
         }
@@ -562,24 +658,37 @@ LRESULT WndProc(HWND hwnd, UINT m, WPARAM wp, LPARAM lp)
       //  DrawLineParametric(hdc, X1, Y1, X2, Y2, RGB(0, 0, 255));
      //   DrawLineDirect(hdc, X1, Y1, X2, Y2, RGB(0, 0, 0));
 
-    // Compute deltas
+    //// Compute deltas
         int dx = X2 - X1;
         int dy = Y2 - Y1;
 
-        // Use the larger of dx or dy as the square side length (preserve direction)
-        int length = max(abs(dx), abs(dy));
+    //    // Use the larger of dx or dy as the square side length (preserve direction)
+        int lengthSq = max(abs(dx), abs(dy));
 
-        // Adjust the second point to form a square keeping direction
-        if (dx < 0) X2 = X1 - length;
-        else        X2 = X1 + length;
+       // // Adjust the second point to form a square keeping direction
+        if (dx < 0) X2 = X1 - lengthSq;
+        else        X2 = X1 + lengthSq;
 
-        if (dy < 0) Y2 = Y1 - length;
-        else        Y2 = Y1 + length;
+        if (dy < 0) Y2 = Y1 - lengthSq;
+       else        Y2 = Y1 + lengthSq;
 
         // Draw the square from (X1, Y1) with calculated side length
-        DrawSquare(hdc, X1, Y1, length, RGB(255, 0, 0));
+        
+        DrawSquare(hdc, X1, Y1, lengthSq, RGB(255, 0, 0));
+        FillingSquareWithHermiteCurves(hdc, X1, Y1, lengthSq, 5, RGB(255, 0, 0), RGB(0, 0, 255));
 
-        FillingSquareWithHermiteCurves(hdc, X1, Y1, length, 5, RGB(255, 0, 0), RGB(0, 0, 255));
+
+        // Calculate top-left corner (x1, y1), and dimensions
+        //int x_min = min(X1, X2);
+        //int y_min = min(Y1, Y2);
+        //int length = abs(X2 - X1); // width along X
+
+        //int width = abs(Y2 - Y1); // height along Y
+
+        //DrawRectangle(hdc, x_min, y_min, length, width, RGB(255, 0, 0));
+
+        //FillingRectangleWithBezierCurves(hdc, X1, Y1, length, width, 5, RGB(255, 155, 0), RGB(100, 0, 255));
+
 
 
 
