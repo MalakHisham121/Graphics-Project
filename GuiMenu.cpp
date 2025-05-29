@@ -512,14 +512,29 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
             if (cursorName == L"Arrow")
                 currentCursor = LoadCursor(NULL, IDC_ARROW);
+            else if (cursorName == L"I-Beam")
+                currentCursor = LoadCursor(NULL, IDC_IBEAM);
             else if (cursorName == L"Cross")
                 currentCursor = LoadCursor(NULL, IDC_CROSS);
             else if (cursorName == L"Hand")
                 currentCursor = LoadCursor(NULL, IDC_HAND);
-            else if (cursorName == L"IBeam")
-                currentCursor = LoadCursor(NULL, IDC_IBEAM);
+            else if (cursorName == L"Wait")
+                currentCursor = LoadCursor(NULL, IDC_WAIT);
+            else if (cursorName == L"No")
+                currentCursor = LoadCursor(NULL, IDC_NO);
+            else if (cursorName == L"Size All")
+                currentCursor = LoadCursor(NULL, IDC_SIZEALL);
+            else if (cursorName == L"Size NW-SE")
+                currentCursor = LoadCursor(NULL, IDC_SIZENWSE);
+            else if (cursorName == L"Size NE-SW")
+                currentCursor = LoadCursor(NULL, IDC_SIZENESW);
+            else if (cursorName == L"Size WE")
+                currentCursor = LoadCursor(NULL, IDC_SIZEWE);
+            else if (cursorName == L"Size NS")
+                currentCursor = LoadCursor(NULL, IDC_SIZENS);
             else
                 currentCursor = LoadCursor(NULL, IDC_ARROW); // Fallback
+
 
             // Force both windows to refresh their cursors
             SetCursor(currentCursor); // Immediately update if hovering
