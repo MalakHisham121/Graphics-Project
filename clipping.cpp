@@ -1,19 +1,19 @@
 #include <windows.h>
+#include"line.h"
 #include <iostream>
-#include<vector>
+#include <vector>
 #include <math.h>
 // Author: Malak Hisham
-// use following commands to compile and run the code
+// Use following commands to compile and run the code
 // g++ -o clipping clipping.cpp -mwindows
 // ./clipping
 using namespace std;
 
 struct Linepoint {
     double x, y;
+    Linepoint() : x(0), y(0) {}
     Linepoint(double a, double b) : x(a), y(b) {}
 };
-
-
 
 union code {
     unsigned whole : 4;
@@ -24,6 +24,19 @@ union code {
 
 struct Rectangl {
     double X_min, X_max, Y_min, Y_max;
+};
+
+struct Poly {
+    vector<Linepoint> vertices;
+    vector<code> verticesPos;
+};
+
+struct Line {
+    Linepoint p1, p2;
+};
+
+struct Circle {
+    double xc, yc, r;
 };
 
 code SetCode(Linepoint & p, Rectangl & R) {
@@ -39,25 +52,10 @@ code SetCode(Linepoint & p, Rectangl & R) {
         c.top = 1;
     return c;
 }
-struct Poly{
-    vector<Linepoint> vertices;
-    vector<code> verticesPos;
-
-};
-
-
-struct Line {
-    Linepoint p1, p2;
-};
-struct Circle {
-    double xc, yc, r;
-};
 
 void LineClipping(Rectangl& R, Linepoint& p1, Linepoint& p2, code& code1, code& code2) {
-    // use cohen sutherland algorithem
     double slope = (p2.x - p1.x) ? (p2.y - p1.y) / (p2.x - p1.x) : 0;
     bool isVertical = (p2.x == p1.x);
-
     while ((code1.whole || code2.whole) && !(code1.whole & code2.whole)) {
         if (code1.whole) {
             if (code1.left) {
@@ -107,163 +105,137 @@ void LineClipping(Rectangl& R, Linepoint& p1, Linepoint& p2, code& code1, code& 
         }
     }
 }
-vector<Linepoint> check(int ref, Linepoint &p1, Linepoint & p2, bool greaterisInner,bool X)
-{
+
+vector<Linepoint> check(int ref, Linepoint &p1, Linepoint & p2, bool greaterisInner, bool X) {
     vector<Linepoint> result;
     double slope = (p2.x != p1.x) ? (p2.y - p1.y) / (p2.x - p1.x) : 0;
-bool isVertical = (p2.x == p1.x);
-if (greaterisInner) {
-    if (X) { 
-        if (p1.x >= ref && p2.x >= ref) { // Both inside
-            result.push_back(p2);
+    bool isVertical = (p2.x == p1.x);
+    if (greaterisInner) {
+        if (X) { 
+            if (p1.x >= ref && p2.x >= ref) {
+                result.push_back(p2);
+            }
+            else if (p1.x >= ref && p2.x < ref) {
+                double x = ref;
+                double y = p1.y + slope * (ref - p1.x);
+                result.push_back(Linepoint(x, y));
+            }
+            else if (p1.x < ref && p2.x >= ref) {
+                double x = ref;
+                double y = p1.y + slope * (ref - p1.x);
+                result.push_back(Linepoint(x, y));
+                result.push_back(p2);
+            }
         }
-        else if (p1.x >= ref && p2.x < ref) { // p1 inside, p2 outside
-            double x = ref;
-            double y = p1.y + slope * (ref - p1.x);
-            result.push_back(Linepoint(x, y));
-        }
-        else if (p1.x < ref && p2.x >= ref) { // p1 outside, p2 inside
-            double x = ref;
-            double y = p1.y + slope * (ref - p1.x);
-            result.push_back(Linepoint(x, y));
-            result.push_back(p2);
-        }
-        
-    }
-    else { 
-        if (p1.y >= ref && p2.y >= ref) {
-            result.push_back(p2);
-        }
-        else if (p1.y >= ref && p2.y < ref) {
-            double y = ref;
-            double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
-            result.push_back(Linepoint(x, y));
-        }
-        else if (p1.y < ref && p2.y >= ref) {
-            double y = ref;
-            double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
-            result.push_back(Linepoint(x, y));
-            result.push_back(p2);
-        }
-    
-    }
-}else { // greaterisInner = false
-    if (X) { 
-        if (p1.x <= ref && p2.x <= ref) {
-            result.push_back(p2);
-        }
-        else if (p1.x <= ref && p2.x > ref) {
-            double x = ref;
-            double y = p1.y + slope * (ref - p1.x);
-            result.push_back(Linepoint(x, y));
-        }
-        else if (p1.x > ref && p2.x <= ref) {
-            double x = ref;
-            double y = p1.y + slope * (ref - p1.x);
-            result.push_back(Linepoint(x, y));
-            result.push_back(p2);
+        else { 
+            if (p1.y >= ref && p2.y >= ref) {
+                result.push_back(p2);
+            }
+            else if (p1.y >= ref && p2.y < ref) {
+                double y = ref;
+                double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
+                result.push_back(Linepoint(x, y));
+            }
+            else if (p1.y < ref && p2.y >= ref) {
+                double y = ref;
+                double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
+                result.push_back(Linepoint(x, y));
+                result.push_back(p2);
+            }
         }
     }
-    else { 
-        if (p1.y <= ref && p2.y <= ref) {
-            result.push_back(p2);
+    else {
+        if (X) { 
+            if (p1.x <= ref && p2.x <= ref) {
+                result.push_back(p2);
+            }
+            else if (p1.x <= ref && p2.x > ref) {
+                double x = ref;
+                double y = p1.y + slope * (ref - p1.x);
+                result.push_back(Linepoint(x, y));
+            }
+            else if (p1.x > ref && p2.x <= ref) {
+                double x = ref;
+                double y = p1.y + slope * (ref - p1.x);
+                result.push_back(Linepoint(x, y));
+                result.push_back(p2);
+            }
         }
-        else if (p1.y <= ref && p2.y > ref) {
-            double y = ref;
-            double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
-            result.push_back(Linepoint(x, y));
-        }
-        else if (p1.y > ref && p2.y <= ref) {
-            double y = ref;
-            double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
-            result.push_back(Linepoint(x, y));
-            result.push_back(p2);
+        else { 
+            if (p1.y <= ref && p2.y <= ref) {
+                result.push_back(p2);
+            }
+            else if (p1.y <= ref && p2.y > ref) {
+                double y = ref;
+                double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
+                result.push_back(Linepoint(x, y));
+            }
+            else if (p1.y > ref && p2.y <= ref) {
+                double y = ref;
+                double x = isVertical ? p1.x : p1.x + (1.0 / slope) * (ref - p1.y);
+                result.push_back(Linepoint(x, y));
+                result.push_back(p2);
+            }
         }
     }
+    return result;
 }
-return result;
-}
 
-
-
-void RectangleClipping(HDC hdc, int type, Rectangl R, Linepoint p1, Linepoint p2, Poly poly ={}) {
+void RectangleClipping(HDC hdc, int type, Rectangl R, Linepoint p1, Linepoint p2, Poly poly) {
     if (type == 0) {
+        // Drawing a single point for point clipping
+        // Could call a custom point-drawing function here instead of SetPixel
         code c = SetCode(p1, R);
         if (!c.whole) {
-            SetPixel(hdc, round(p1.x), round(p1.y), RGB(0, 0, 255)); // Blue point
+            SetPixel(hdc, round(p1.x), round(p1.y), RGB(0, 0, 255));
         }
     }
     else if (type == 1) {
         code code1 = SetCode(p1, R);
         code code2 = SetCode(p2, R);
-        // call line drawing algorithems here 
-
-        // Draw original line in red
-        HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
-        SelectObject(hdc, hPen);
-        MoveToEx(hdc, round(p1.x), round(p1.y), NULL);
-        LineTo(hdc, round(p2.x), round(p2.y));
-        DeleteObject(hPen);
-
-        // Clip the line
+        
         LineClipping(R, p1, p2, code1, code2);
-
-        // Draw clipped line in blue if accepted
         if (!(code1.whole || code2.whole)) {
-            hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
-            SelectObject(hdc, hPen);
-            MoveToEx(hdc, round(p1.x), round(p1.y), NULL);
-            LineTo(hdc, round(p2.x), round(p2.y));
-            DeleteObject(hPen);
+            DrawLineDDA(hdc, p1.x, p1.y, p2.x, p2.y, RGB(0, 0, 255));
         } 
     }
     else if (type == 2) {
-if (type == 2) {
-    vector<Linepoint> polygon = poly.vertices;
-    if (polygon.empty() || polygon.size() < 3) return;
+        vector<Linepoint> polygon = poly.vertices;
+        if (polygon.empty() || polygon.size() < 3) return;
+        // Drawing the original polygon in red
+        // Could call a custom polygon-drawing function or loop over a line-drawing function (e.g., Bresenham's) for each edge
+        for (size_t i = 1; i < polygon.size(); ++i) {
+            DrawLineDDA(hdc, round(polygon[i-1].x), round(polygon[i-1].y), round(polygon[i].x), round(polygon[i].y), RGB(255, 0, 0));
 
-    // Draw original polygon in red
-    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
-    SelectObject(hdc, hPen);
-    MoveToEx(hdc, round(polygon[0].x), round(polygon[0].y), NULL);
-    for (size_t i = 1; i < polygon.size(); ++i) {
-        LineTo(hdc, round(polygon[i].x), round(polygon[i].y));
-    }
-    LineTo(hdc, round(polygon[0].x), round(polygon[0].y));
-    DeleteObject(hPen);
-
-    vector<Linepoint> input = polygon;
-    vector<Linepoint> output;
-    // Boundary order: left, right, bottom, top
-    for (int boundary = 0; boundary < 4; ++boundary) {
-        output.clear();
-        int ref = (boundary == 0) ? R.X_min : (boundary == 1) ? R.X_max :
-                  (boundary == 2) ? R.Y_min : R.Y_max;
-        bool greaterisInner = (boundary == 0 || boundary == 2);
-        bool X = (boundary == 0 || boundary == 1);
-        for (size_t i = 0; i < input.size(); ++i) {
-            Linepoint p1 = input[i];
-            Linepoint p2 = input[(i + 1) % input.size()];
-            vector<Linepoint> edgeResult = check(ref, p1, p2, greaterisInner, X);
-            for (const auto& point : edgeResult) {
-                output.push_back(point);
+        }
+        DrawLineDDA(hdc, round(polygon.back().x), round(polygon.back().y), round(polygon[0].x), round(polygon[0].y), RGB(255, 0, 0));
+        vector<Linepoint> input = polygon;
+        vector<Linepoint> output;
+        for (int boundary = 0; boundary < 4; ++boundary) {
+            output.clear();
+            int ref = (boundary == 0) ? R.X_min : (boundary == 1) ? R.X_max :
+                      (boundary == 2) ? R.Y_min : R.Y_max;
+            bool greaterisInner = (boundary == 0 || boundary == 2);
+            bool X = (boundary == 0 || boundary == 1);
+            for (size_t i = 0; i < input.size(); ++i) {
+                Linepoint p1 = input[i];
+                Linepoint p2 = input[(i + 1) % input.size()];
+                vector<Linepoint> edgeResult = check(ref, p1, p2, greaterisInner, X);
+                for (const auto& point : edgeResult) {
+                    output.push_back(point);
+                }
             }
+            input = output;
         }
-        input = output;
-    }
-
-    // Draw clipped polygon in blue
-    hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
-    SelectObject(hdc, hPen);
-    if (!output.empty()) {
-        MoveToEx(hdc, round(output[0].x), round(output[0].y), NULL);
-        for (size_t i = 1; i < output.size(); ++i) {
-            LineTo(hdc, round(output[i].x), round(output[i].y));
+        // Drawing the clipped polygon in blue
+      
+        if (!output.empty()) {
+            for (size_t i = 1; i < output.size(); ++i) {
+                DrawLineDDA(hdc, round(output[i-1].x), round(output[i-1].y), round(output[i].x), round(output[i].y), RGB(0, 0, 255));
+            }
+            DrawLineDDA(hdc, round(output.back().x), round(output.back().y), round(output[0].x), round(output[0].y), RGB(0, 0, 255));
         }
-        LineTo(hdc, round(output[0].x), round(output[0].y));
     }
-    DeleteObject(hPen);
-}    }
 }
 
 vector<Linepoint> findIntersections(Linepoint p1, Linepoint p2, Circle C) {
@@ -288,145 +260,229 @@ vector<Linepoint> findIntersections(Linepoint p1, Linepoint p2, Circle C) {
     return intersections;
 }
 
-void drawCircle(HDC hdc, Circle C) {
-    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-    SelectObject(hdc, hPen);
-    // Approximate circle with points
-    int numPoints = 100;
-    for (int i = 0; i <= numPoints; ++i) {
-        double theta = 2 * M_PI * i / numPoints;
-        double x = C.xc + C.r * cos(theta);
-        double y = C.yc + C.r * sin(theta);
-        if (i == 0) MoveToEx(hdc, round(x), round(y), NULL);
-        else LineTo(hdc, round(x), round(y));
-    }
-    DeleteObject(hPen);
-}
 
 void CircleClipping(HDC hdc, int type, Circle C, Linepoint & p1, Linepoint & p2) {
     int d1 = (p1.x - C.xc) * (p1.x - C.xc) + (p1.y - C.yc) * (p1.y - C.yc);
     int d2 = (p2.x - C.xc) * (p2.x - C.xc) + (p2.y - C.yc) * (p2.y - C.yc);
     int rsqured = C.r * C.r;
     bool draw = 0;
-    if(d1<= rsqured&&d2<=rsqured){
+    if (d1 <= rsqured && d2 <= rsqured) {
+        // Drawing a point or line fully inside the circle
+        // Could call a custom point or line-drawing function here
         draw = 1;
     }
-    else if(d1<=rsqured){
-auto intersections = findIntersections(p1, p2, C);
+    else if (d1 <= rsqured) {
+        auto intersections = findIntersections(p1, p2, C);
         if (!intersections.empty()) {
             p2 = intersections[0];
             draw = 1;
         }
     }
-    else if(d2<=rsqured){
-auto intersections = findIntersections(p1, p2, C);
+    else if (d2 <= rsqured) {
+        auto intersections = findIntersections(p1, p2, C);
         if (!intersections.empty()) {
             p1 = intersections[0];
             draw = 1;
         }
     }
-    else{
-      auto intersections = findIntersections(p1, p2, C);
+    else {
+        auto intersections = findIntersections(p1, p2, C);
         if (intersections.size() == 2) {
             p1 = intersections[0];
             p2 = intersections[1];
-            draw=1;
-        
+            draw = 1;
         }  
     }
-
-    // Use Another done circle algorithems 
-    drawCircle(hdc, C);
-
-    HPEN hPen = CreatePen(PS_SOLID, 1, RGB(255, 0, 0));
-    SelectObject(hdc, hPen);
-    MoveToEx(hdc, round(p1.x), round(p1.y), NULL);
-    LineTo(hdc, round(p2.x), round(p2.y));
-    DeleteObject(hPen);
+    // Drawing the clipping circle
+    // Could call a custom circle-drawing function (e.g., Midpoint circle algorithm) here
 
     if (draw) {
-        hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 255));
-        SelectObject(hdc, hPen);
-        MoveToEx(hdc, round(p1.x), round(p1.y), NULL);
-        LineTo(hdc, round(p2.x), round(p2.y));
-        DeleteObject(hPen);
+       
+            DrawLineDDA(hdc,p1.x,p1.y,p2.x,p2.y,RGB(0, 0, 255));
+
     }
 }
 
 
-int testCase = 2;
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
-    case WM_PAINT: {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
+enum ClippingWindow { NONE, RECTANGLE, SQUARE, CIRCLE };
+enum ObjectType { OBJ_NONE, OBJ_POINT, LINE, POLYGON };
+enum InputState { IDLE, SET_CLIP_WINDOW_P1, SET_CLIP_WINDOW_P2, SET_POINT, SET_LINE_P1, SET_LINE_P2, SET_POLYGON };
 
-        // Define the clipping rectangle
-        Rectangl R = {100.0, 300.0, 100.0, 300.0}; // X_min, X_max, Y_min, Y_max
+ClippingWindow currentWindow = NONE;
+ObjectType currentObject = OBJ_NONE;
+InputState currentState = IDLE;
+Rectangl clipRect;
+Circle clipCircle;
+Linepoint point, lineP1, lineP2;
+Poly polygon;
+vector<Linepoint> tempPolygonVertices;
+bool clipWindowDefined = false;
 
-        // Draw the clipping rectangle in black
-        HPEN hPen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-        SelectObject(hdc, hPen);
-        MoveToEx(hdc, round(R.X_min), round(R.Y_min), NULL);
-        LineTo(hdc, round(R.X_max), round(R.Y_min));
-        LineTo(hdc, round(R.X_max), round(R.Y_max));
-        LineTo(hdc, round(R.X_min), round(R.Y_max));
-        LineTo(hdc, round(R.X_min), round(R.Y_min));
-        DeleteObject(hPen);
+void DrawClippingWindow(HDC hdc) {
+    
 
-        // Test cases
-        static int testCase = 3; // Moved from global to avoid redefinition issues
-        if (testCase == 0) {
-            // Point clipping
-            Linepoint p1(150.0, 150.0); // Inside
-            Linepoint p2(50.0, 50.0);   // Outside
-            RectangleClipping(hdc, 0, R, p1, p2);
-            RectangleClipping(hdc, 0, R, p2, p2);
-        }
-        else if (testCase == 1) {
-            // Line clipping test cases
-            Linepoint p1(120.0, 120.0), p2(280.0, 280.0); // Fully inside
-            RectangleClipping(hdc, 1, R, p1, p2);
+    if (currentWindow == RECTANGLE ) {
+        DrawRectangle(hdc, clipRect.X_min, clipRect.Y_min, clipRect.X_max - clipRect.X_min,clipRect.Y_max - clipRect.Y_min, RGB(0, 0, 0));
+    }
+    else if(currentWindow == SQUARE){
+        DrawSquare(hdc, clipRect.X_min, clipRect.Y_min, clipRect.Y_max - clipRect.Y_min, RGB(0, 0, 0));
 
-            p1 = {50.0, 50.0}, p2 = {200.0, 200.0}; // Partially inside
-            RectangleClipping(hdc, 1, R, p1, p2);
-
-            p1 = {50.0, 150.0}, p2 = {80.0, 150.0}; // Fully outside
-            RectangleClipping(hdc, 1, R, p1, p2);
-
-            p1 = {150.0, 50.0}, p2 = {150.0, 350.0}; // Vertical line
-            RectangleClipping(hdc, 1, R, p1, p2);
-        }
-        else if (testCase == 2) {
-            Poly polygon;
-            polygon.vertices= {
-                Linepoint(50.0, 50.0),
-                Linepoint(200.0, 50.0),
-                Linepoint(250.0, 200.0),
-                Linepoint(150.0, 250.0),
-                Linepoint(50.0, 200.0)};
-
-            RectangleClipping(hdc, 2, R, Linepoint(0, 0), Linepoint(0, 0), polygon);        }
-        if (testCase == 3) {
-        Circle C = {200.0, 200.0, 100.0}; 
-        Linepoint p1(500.0, 150.0), p2(250.0, 250.0); 
-        CircleClipping(hdc, 1, C, p1, p2);
-        p1 = Linepoint(100.0, 100.0), p2 = Linepoint(300.0, 300.0); 
-        CircleClipping(hdc, 1, C, p1, p2);
-        p1 = Linepoint(50.0, 50.0), p2 = Linepoint(100.0, 50.0); 
-        CircleClipping(hdc, 1, C, p1, p2);
+    }
+    else if (currentWindow == CIRCLE) {
+        DrawCircleMidpoint(hdc, clipCircle.xc, clipCircle.yc, clipCircle.r, RGB(0, 0, 0));
     }
 
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    static HDC hdc;
+    static PAINTSTRUCT ps;
+
+    switch (msg) {
+    case WM_COMMAND: {
+        int menuId = LOWORD(wParam);
+        switch (menuId) {
+        case 1: 
+            currentWindow = RECTANGLE;
+            currentObject = OBJ_NONE;
+            currentState = SET_CLIP_WINDOW_P1;
+            clipWindowDefined = false;
+            tempPolygonVertices.clear();
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+        case 2: 
+            currentWindow = SQUARE;
+            currentObject = OBJ_NONE;
+            currentState = SET_CLIP_WINDOW_P1;
+            clipWindowDefined = false;
+            tempPolygonVertices.clear();
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+        case 3: // Circle Window
+            currentWindow = CIRCLE;
+            currentObject = OBJ_NONE;
+            currentState = SET_CLIP_WINDOW_P1;
+            clipWindowDefined = false;
+            tempPolygonVertices.clear();
+            InvalidateRect(hwnd, NULL, TRUE);
+            break;
+        case 4: // Point
+            if (currentWindow != NONE) {
+                currentObject = OBJ_POINT;
+                currentState = SET_POINT;
+                tempPolygonVertices.clear();
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+            break;
+        case 5: // Line
+            if (currentWindow != NONE) {
+                currentObject = LINE;
+                currentState = SET_LINE_P1;
+                tempPolygonVertices.clear();
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+            break;
+        case 6: // Polygon (only for Rectangle)
+            if (currentWindow == RECTANGLE) {
+                currentObject = POLYGON;
+                currentState = SET_POLYGON;
+                tempPolygonVertices.clear();
+                InvalidateRect(hwnd, NULL, TRUE);
+            }
+            break;
+        }
+        break;
+    }
+    case WM_LBUTTONDOWN: {
+        int x = LOWORD(lParam);
+        int y = HIWORD(lParam);
+        hdc = GetDC(hwnd);
+
+        if (currentState == SET_CLIP_WINDOW_P1) {
+            point = Linepoint(x, y);
+            currentState = SET_CLIP_WINDOW_P2;
+        }
+        else if (currentState == SET_CLIP_WINDOW_P2) {
+            if (currentWindow == RECTANGLE) {
+                clipRect.X_min = min(point.x, (double)x);
+                clipRect.X_max = max(point.x, (double)x);
+                clipRect.Y_min = min(point.y, (double)y);
+                clipRect.Y_max = max(point.y, (double)y);
+                clipWindowDefined = true;
+            }
+            else if (currentWindow == SQUARE) {
+                double side = max(abs(x - point.x), abs(y - point.y));
+                clipRect.X_min = point.x;
+                clipRect.X_max = point.x + side;
+                clipRect.Y_min = point.y;
+                clipRect.Y_max = point.y + side;
+                clipWindowDefined = true;
+            }
+            else if (currentWindow == CIRCLE) {
+                clipCircle.xc = point.x;
+                clipCircle.yc = point.y;
+                clipCircle.r = sqrt(pow(x - point.x, 2) + pow(y - point.y, 2));
+                clipWindowDefined = true;
+            }
+            currentState = IDLE;
+            InvalidateRect(hwnd, NULL, TRUE);
+        }
+        else if (currentState == SET_POINT && clipWindowDefined) {
+            point = Linepoint(x, y);
+            if (currentWindow == RECTANGLE || currentWindow == SQUARE) {
+                RectangleClipping(hdc, 0, clipRect, point, point, Poly{});
+            }
+            else if (currentWindow == CIRCLE) {
+             
+                CircleClipping(hdc, 0, clipCircle, point, point);
+            }
+            currentState = IDLE;
+        }
+        else if (currentState == SET_LINE_P1 && clipWindowDefined) {
+            lineP1 = Linepoint(x, y);
+            currentState = SET_LINE_P2;
+        }
+        else if (currentState == SET_LINE_P2 && clipWindowDefined) {
+            lineP2 = Linepoint(x, y);
+            if (currentWindow == RECTANGLE || currentWindow == SQUARE) {
+                RectangleClipping(hdc, 1, clipRect, lineP1, lineP2, Poly{});
+            }
+            else if (currentWindow == CIRCLE) {
+                CircleClipping(hdc, 1, clipCircle, lineP1, lineP2);
+            }
+            currentState = IDLE;
+        }
+        else if (currentState == SET_POLYGON && clipWindowDefined) {
+            tempPolygonVertices.push_back(Linepoint(x, y));
+
+            if (tempPolygonVertices.size() > 1) {
+                DrawLineDDA(hdc, round(tempPolygonVertices[tempPolygonVertices.size() - 2].x),
+                            round(tempPolygonVertices[tempPolygonVertices.size() - 2].y), round(tempPolygonVertices.back().x), round(tempPolygonVertices.back().y), RGB(255, 0, 0));
+            }
+            
+        }
+        ReleaseDC(hwnd, hdc);
+        break;
+    }
+    case WM_RBUTTONDOWN: {
+        if (currentState == SET_POLYGON && clipWindowDefined && tempPolygonVertices.size() >= 3) {
+            hdc = GetDC(hwnd);
+            polygon.vertices = tempPolygonVertices;
+            RectangleClipping(hdc, 2, clipRect, Linepoint(0, 0), Linepoint(0, 0), polygon);
+            tempPolygonVertices.clear();
+            currentState = IDLE;
+            ReleaseDC(hwnd, hdc);
+        }
+        break;
+    }
+    case WM_PAINT: {
+        hdc = BeginPaint(hwnd, &ps);
+        if (clipWindowDefined) {
+            DrawClippingWindow(hdc);
+        }
         EndPaint(hwnd, &ps);
         break;
     }
-    case WM_KEYDOWN:
-        if (wParam == '0') testCase = 0;
-        else if (wParam == '1') testCase = 1;
-        else if (wParam == '2') testCase = 2;
-        else if (wParam == '3') testCase = 3;
-        InvalidateRect(hwnd, NULL, TRUE);
-        break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
@@ -437,7 +493,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-    const wchar_t CLASS_NAME[] = L"ClippingWindow"; // Fixed array notation
+    const wchar_t CLASS_NAME[] = L"ClippingWindow";
     WNDCLASSW wc = {};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
@@ -446,17 +502,27 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClassW(&wc);
 
     HWND hwnd = CreateWindowExW(
-        0,                        // Extended style
-        CLASS_NAME,               // Class name
-        L"Clipping Algorithm Test", // Window title
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600,
-        NULL, NULL, hInstance, NULL
+        0, CLASS_NAME, L"Clipping Algorithm Test", WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, NULL, NULL, hInstance, NULL
     );
 
     if (hwnd == NULL) {
         return 0;
     }
+
+    
+    HMENU hMenu = CreateMenu();
+    HMENU hWindowMenu = CreatePopupMenu();
+    HMENU hObjectMenu = CreatePopupMenu();
+    AppendMenu(hWindowMenu, MF_STRING, 1, "Rectangle");
+    AppendMenu(hWindowMenu, MF_STRING, 2, "Square");
+    AppendMenu(hWindowMenu, MF_STRING, 3, "Circle");
+    AppendMenu(hObjectMenu, MF_STRING, 4, "Point");
+    AppendMenu(hObjectMenu, MF_STRING, 5, "Line");
+    AppendMenu(hObjectMenu, MF_STRING, 6, "Polygon");
+    AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hWindowMenu, "Clipping Window");
+    AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hObjectMenu, "Object");
+    SetMenu(hwnd, hMenu);
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
