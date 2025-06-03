@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include "functions.h"
 
 
 #define ID_COMBO_SHAPE      101
@@ -20,14 +21,39 @@
 HFONT hFontLarge, hFontMedium, hFontSmall;
 COLORREF customColor = RGB(0, 0, 0);  // Default black
 HCURSOR currentCursor = LoadCursor(NULL, IDC_ARROW); // Default
-HBRUSH drawingBackgroundBrush = CreateSolidBrush(RGB(255, 255, 255)); // Default: Black
+HBRUSH drawingBackgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
 HWND hDrawingWindow = NULL;
-
+std::wstring algorithm = L"";
+std::wstring shape = L"";
 COLORREF color;
-POINT clickPoints[2];
+
+std::vector <POINT> clickPoints;
 int clickCount = 0;
 
+//******************************************************************************************
+//// Global variables to store line endpoints
+//int X1, Y1, X2, Y2;
+//// Global variables to Circle
+//int Xc, Yc, R;
+//******************************************************************************************
 
+//******************************************************************************************
+// Area for logging vectors
+//std::vector <POINT> LineDDA;
+std::vector <POINT> LineMidpoint;
+std::vector <POINT> LineParametric;
+std::vector <POINT> LineDirect;
+std::vector <POINT> CircleDirect;
+std::vector <POINT> CirclePolar;
+std::vector <POINT> CircleIterativePolar;
+std::vector <POINT> CircleMidpoint;
+std::vector <POINT> CircleModifiedMidpoint;
+std::vector <POINT> CircleFillWithLines;
+std::vector <POINT> CircleWithCircles;
+std::vector <POINT> HermitCurve;
+std::vector <POINT> Square;
+
+//******************************************************************************************
 
 
 std::map<std::wstring, std::vector<std::wstring>> shapeAlgorithmMap = {
@@ -179,6 +205,7 @@ void populateShapeAlgorithm(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle");
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle Fill");
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Square Fill");
+    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Rectangle Fill");
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Convex Fill");
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Non-Convex Fill");
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Flood Fill");
@@ -187,7 +214,7 @@ void populateShapeAlgorithm(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Rectangle Clipping");
     SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Square Clipping");
 
-    SendMessage(hShapeBox, CB_SETCURSEL, 0, 0);  // Select "Line"
+    SendMessage(hShapeBox, CB_SETCURSEL, 0, 0);
     SendMessage(hwnd, WM_COMMAND, MAKEWPARAM(ID_COMBO_SHAPE, CBN_SELCHANGE), (LPARAM)hShapeBox);
 };
 
@@ -196,6 +223,7 @@ void populateColorList(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     for (const auto& pair : shapeColorMap) {
         SendMessage(hColorBox, CB_ADDSTRING, 0, (LPARAM)pair.first.c_str());
     }
+    SendMessage(hColorBox, CB_SETCURSEL, 0, 0);
 };
 
 void populateMouseList(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -227,49 +255,273 @@ std::wstring GetComboBoxSelectedText(HWND comboBox) {
 
 
 //-----------------------------------------------------------------------------------------------
-void drawLineDDA(HDC hdc, int x1, int y1, int x2, int y2, COLORREF color) {
-    int dx = x2 - x1;
-    int dy = y2 - y1;
 
-    int steps = max(abs(dx), abs(dy));
-    float xInc = dx / (float)steps;
-    float yInc = dy / (float)steps;
-
-    float x = x1;
-    float y = y1;
-
-    for (int i = 0; i <= steps; i++) {
-        SetPixel(hdc, round(x), round(y), color);
-        x += xInc;
-        y += yInc;
-    }
-}
 
 LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    static POINT clickPoints[2];
     static int clickCount = 0;
-    COLORREF drawColor = color;  // Red by default
+    COLORREF drawColor = color;
 
     switch (msg) {
     case WM_LBUTTONDOWN: {
-        int x = LOWORD(lParam);
-        int y = HIWORD(lParam);
+        HDC hdc = GetDC(hwnd);
 
-        clickPoints[clickCount] = { x, y };
-        clickCount++;
+        X1 = LOWORD(lParam);
+        Y1 = HIWORD(lParam);
 
-        if (clickCount == 2) {
-            HDC hdc = GetDC(hwnd);
-            drawLineDDA(hdc,
-                clickPoints[0].x, clickPoints[0].y,
-                clickPoints[1].x, clickPoints[1].y,
-                drawColor);
-            ReleaseDC(hwnd, hdc);
-            clickCount = 0;
+        // Assume center of circle
+        Xc = LOWORD(lParam);
+        Yc = HIWORD(lParam);
+
+        if (shape == L"Line") {
+           
         }
+        else if (shape == L"Circle") {
+            
+
+        }
+        else if (shape == L"Circle Fill") {
+            if (algorithm == L"Lines") {
+
+            }
+            else if (algorithm == L"Cricle") {
+
+            }
+
+        }
+        else if (shape == L"Square Fill") {
+            if (algorithm == L"Hermit Curve [Vertical]") {
+
+            }
+
+        }
+        else if (shape == L"Rectangle Fill") {
+            if (algorithm == L"Hermit Curve [Vertical]") {
+
+            }
+
+        }
+        else if (shape == L"Convex Fill") {
+            if (algorithm == L"Scanline") {
+
+            }
+
+        }
+        else if (shape == L"Non-Convex Fill") {
+            if (algorithm == L"Polygon Fill") {
+
+            }
+
+        }
+        else if (shape == L"Flood Fill") {
+            if (algorithm == L"Recursive") {
+
+            }
+            else if (algorithm == L"Non-Recursive") {
+
+            }
+
+        }
+        else if (shape == L"Cardinal Spline Curve") {
+            if (algorithm == L"Curve Algorithm") {
+
+            }
+
+        }
+        else if (shape == L"Ellipse") {
+            if (algorithm == L"Direct") {
+
+            }
+            else if (algorithm == L"Polar") {
+
+            }
+            else if (algorithm == L"Midpoint") {
+
+            }
+
+        }
+        else if (shape == L"Rectangle Clipping") {
+            if (algorithm == L"Point") {
+
+            }
+            else if (algorithm == L"Line") {
+
+            }
+            else if (algorithm == L"Polygon") {
+
+            }
+
+        }
+        else if (shape == L"Square Clipping") {
+            if (algorithm == L"Point") {
+
+            }
+            else if (algorithm == L"Line") {
+
+            }
+        }
+
+        ReleaseDC(hwnd, hdc);
         break;
     }
+    case WM_LBUTTONUP: {
+        HDC hdc = GetDC(hwnd);
+        X2 = LOWORD(lParam);
+        Y2 = HIWORD(lParam);
 
+        // For circles
+        int X = LOWORD(lParam);
+        int Y = HIWORD(lParam);
+
+        // calculate raduis
+        R = Round(sqrt((X - Xc) * (X - Xc) + (Y - Yc) * (Y - Yc)));
+
+        if (shape == L"Line") {
+            // Store the second click (ending point of the line)
+
+            if (algorithm == L"DDA") {
+                DrawLineDDA(hdc, X1, Y1, X2, Y2, drawColor);
+            }
+            else if (algorithm == L"Midpoint") {
+                DrawLineMidpoint(hdc, X1, Y1, X2, Y2, drawColor);
+            }
+            else if (algorithm == L"Parametric") {
+                DrawLineParametric(hdc, X1, Y1, X2, Y2, drawColor);
+            }
+
+        }
+        else if (shape == L"Circle") {
+
+            if (algorithm == L"Direct") {
+                DrawCircleDirect(hdc, Xc, Yc, R, drawColor);
+            }
+            else if (algorithm == L"Polar") {
+                DrawCirclePolar(hdc, Xc, Yc, R, drawColor);
+            }
+            else if (algorithm == L"Iterative Polar") {
+                DrawCircleIterativePolar(hdc, Xc, Yc, R, drawColor);
+            }
+            else if (algorithm == L"Midpoint") {
+                DrawCircleMidpoint(hdc, Xc, Yc, R, drawColor);
+            }
+            else if (algorithm == L"Modified Midpoint") {   ///
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, drawColor);
+            }
+
+        }
+        else if (shape == L"Circle Fill") {     // need to implement a popup here to take quarter
+            int quarter = 1;
+            if (algorithm == L"Lines") {
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0,0,0));
+                FillingCircleWithLines(hdc, Xc, Yc, R, quarter, (1.0 / R), drawColor);
+            }
+            else if (algorithm == L"Cricle") {
+                FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, (R / 1.0), drawColor);
+            }
+
+        }
+        else if (shape == L"Square Fill") {
+
+            if (algorithm == L"Hermit Curve [Vertical]") {
+                // Compute deltas
+                int dx = X2 - X1;
+                int dy = Y2 - Y1;
+
+                // Use the larger of dx or dy as the square side length (preserve direction)
+                int lengthSq = max(abs(dx), abs(dy));
+
+                // Adjust the second point to form a square keeping direction
+                if (dx < 0) X2 = X1 - lengthSq;
+                else        X2 = X1 + lengthSq;
+
+                if (dy < 0) Y2 = Y1 - lengthSq;
+                else        Y2 = Y1 + lengthSq;
+
+                // Draw the square from (X1, Y1) with calculated side length
+
+                DrawSquare(hdc, X1, Y1, lengthSq, RGB(0, 0, 0));
+
+                FillingSquareWithHermiteCurves(hdc, X1,  Y1, lengthSq, 5, RGB(0, 0, 0), drawColor);
+            }
+
+        }
+        else if (shape == L"Rectangle Fill") {
+            if (algorithm == L"Bezier  Curve [Horizontal]") {
+                //Calculate top-left corner (x1, y1), and dimensions
+                int x_min = min(X1, X2);
+                int y_min = min(Y1, Y2);
+                int length = abs(X2 - X1); // width along X
+
+                int width = abs(Y2 - Y1); // height along Y
+                
+                DrawRectangle(hdc, x_min, y_min, length, width, RGB(0, 0, 0));
+                
+                FillingRectangleWithBezierCurves(hdc, X1, Y1, length, width, 5, RGB(0, 0, 0), drawColor);
+
+            }
+
+        }
+        else if (shape == L"Convex Fill") {
+            if (algorithm == L"Scanline") {
+
+            }
+
+        }
+        else if (shape == L"Non-Convex Fill") {
+            if (algorithm == L"Polygon Fill") {
+
+            }
+
+        }
+        else if (shape == L"Flood Fill") {
+            if (algorithm == L"Recursive") {
+
+            }
+            else if (algorithm == L"Non-Recursive") {
+
+            }
+
+        }
+        else if (shape == L"Cardinal Spline Curve") {
+            if (algorithm == L"Curve Algorithm") {
+
+            }
+
+        }
+        else if (shape == L"Ellipse") {
+            if (algorithm == L"Direct") {
+
+            }
+            else if (algorithm == L"Polar") {
+
+            }
+            else if (algorithm == L"Midpoint") {
+
+            }
+
+        }
+        else if (shape == L"Rectangle Clipping") {
+            if (algorithm == L"Point") {
+
+            }
+            else if (algorithm == L"Line") {
+
+            }
+            else if (algorithm == L"Polygon") {
+
+            }
+
+        }
+        else if (shape == L"Square Clipping") {
+            if (algorithm == L"Point") {
+
+            }
+            else if (algorithm == L"Line") {
+
+            }
+        }
+
+        ReleaseDC(hwnd, hdc);
+    }
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hwnd, &ps);
@@ -282,23 +534,21 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return TRUE;
     }
     case WM_COMMAND: {
-        
-        // Clear btn
-        if (LOWORD(wParam) == ID_BTN_CLEAR) {
-            if (hDrawingWindow && IsWindow(hDrawingWindow)) {
-                InvalidateRect(hDrawingWindow, NULL, TRUE); // Repaints, triggering WM_PAINT
-            }
-            break;
-        }
-        // Bkg white btn
-        if (LOWORD(wParam) == ID_BTN_WHITE_BG) {
-            drawingBackgroundBrush = CreateSolidBrush(RGB(255, 255, 255)); // White background
-            if (hDrawingWindow && IsWindow(hDrawingWindow)) {
-                InvalidateRect(hDrawingWindow, NULL, TRUE); // Refresh the window
-            }
-            //InvalidateRect(hDrawingWindow, NULL, TRUE);
-            break;
-        }
+        HDC hdc = GetDC(hwnd);
+
+        //if (shape == L"Circle Fill") {     // need to implement a popup here to take quarter
+        //    int quarter = 1;
+        //    FillingCircleWithLines(hdc, Xc, Yc, R, quarter, (1.0 / R), drawColor);
+
+        //    if (algorithm == L"Lines") {
+        //        FillingCircleWithLines(hdc, Xc, Yc, R, quarter, (1.0 / R), drawColor);
+        //    }
+        //    else if (algorithm == L"Cricle") {
+        //        FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, (R / 2), drawColor);
+        //    }
+
+        //}
+        ReleaseDC(hwnd, hdc);
 
         break;
     }
@@ -318,7 +568,7 @@ HWND CreateDrawingWindow(HWND parent) {
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = L"DrawingWindowClass";
     RegisterClass(&wc);
-    SetWindowLongPtr(hDrawingWindow, GWLP_USERDATA, (LONG_PTR)color);
+    //SetWindowLongPtr(hDrawingWindow, GWLP_USERDATA, (LONG_PTR)color);
 
 
     return CreateWindowEx(
@@ -434,7 +684,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         break;
     }
 
-    case WM_COMMAND:{
+    case WM_COMMAND: {
         // Algorithms drop-down
         if (HIWORD(wParam) == CBN_SELCHANGE && LOWORD(wParam) == ID_COMBO_SHAPE) {
             HWND hShapeBox = GetDlgItem(hwnd, ID_COMBO_SHAPE);
@@ -490,8 +740,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             HWND hAlgBox = GetDlgItem(hwnd, ID_COMBO_ALG);
             HWND hColorBox = GetDlgItem(hwnd, ID_COMBO_COLOR);
 
-            std::wstring shape = GetComboBoxSelectedText(hShapeBox);
-            std::wstring algorithm = GetComboBoxSelectedText(hAlgBox);
+            shape = GetComboBoxSelectedText(hShapeBox);
+            algorithm = GetComboBoxSelectedText(hAlgBox);
             std::wstring colorName = GetComboBoxSelectedText(hColorBox);
 
             color = shapeColorMap.count(colorName) ? shapeColorMap[colorName] : customColor;
@@ -500,8 +750,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
                 hDrawingWindow = CreateDrawingWindow(hwnd);
             }
 
-            // Now you can call your draw function:
-            // drawShape(hDrawingWindow, shape, algorithm, color);
             MessageBox(hwnd, (L"Drawing: " + shape + L" using " + algorithm + L" in color " + colorName).c_str(), L"Draw", MB_OK);
         }
 
@@ -562,7 +810,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
         break;
     }
-    
+
     case WM_SETCURSOR: {
         SetCursor(currentCursor);
         return TRUE;
