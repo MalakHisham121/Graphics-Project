@@ -3,7 +3,13 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include "functions.h"
+// For Shahd 
+// #include "Menu.h"
+// For Mariam
+// #include "functions.h"
+// For Malak
+// #include "line.h"
+
 
 
 #define ID_COMBO_SHAPE      101
@@ -31,9 +37,9 @@ std::vector <POINT> clickPoints;
 int clickCount = 0;
 
 //******************************************************************************************
-//// Global variables to store line endpoints
+// Global variables to store line endpoints
 //int X1, Y1, X2, Y2;
-//// Global variables to Circle
+// Global variables to Circle
 //int Xc, Yc, R;
 //******************************************************************************************
 
@@ -273,10 +279,10 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         Yc = HIWORD(lParam);
 
         if (shape == L"Line") {
-           
+
         }
         else if (shape == L"Circle") {
-            
+
 
         }
         else if (shape == L"Circle Fill") {
@@ -411,11 +417,13 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         else if (shape == L"Circle Fill") {     // need to implement a popup here to take quarter
             int quarter = 1;
             if (algorithm == L"Lines") {
-                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0,0,0));
-                FillingCircleWithLines(hdc, Xc, Yc, R, quarter, (1.0 / R), drawColor);
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                FillingCircleWithLines(hdc, Xc, Yc, R, quarter, 3, drawColor);
             }
-            else if (algorithm == L"Cricle") {
-                FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, (R / 1.0), drawColor);
+            else if (algorithm == L"Circle") {
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, 3, drawColor);
+
             }
 
         }
@@ -440,7 +448,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                 DrawSquare(hdc, X1, Y1, lengthSq, RGB(0, 0, 0));
 
-                FillingSquareWithHermiteCurves(hdc, X1,  Y1, lengthSq, 5, RGB(0, 0, 0), drawColor);
+                FillingSquareWithHermiteCurves(hdc, X1, Y1, lengthSq, 5, RGB(0, 0, 0), drawColor);
             }
 
         }
@@ -452,9 +460,9 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 int length = abs(X2 - X1); // width along X
 
                 int width = abs(Y2 - Y1); // height along Y
-                
+
                 DrawRectangle(hdc, x_min, y_min, length, width, RGB(0, 0, 0));
-                
+
                 FillingRectangleWithBezierCurves(hdc, X1, Y1, length, width, 5, RGB(0, 0, 0), drawColor);
 
             }
