@@ -1,6 +1,6 @@
 // Project-Graphics.cpp : Defines the entry point for the application.
 
-#include "framework.h"
+#include "Menu.h"
 #include <algorithm>
 #include <stack>
 #include <vector>
@@ -54,23 +54,6 @@ typedef struct
     int xright;
 } EdgeTable[800];
 
-struct point {
-    double x, y;
-    point() : x(0), y(0) {}
-    point(double x, double y) : x(x), y(y) {}
-
-    point operator+(const point& other) const {
-        return point(x + other.x, y + other.y);
-    }
-    point operator-(const point& other) const {
-        return point(x - other.x, y - other.y);
-    }
-    point operator*(double scalar) const {
-        return point(x * scalar, y * scalar);
-    }
-};
-
-int Round1(double x) { return int(x + 0.5); }
 
 void initializeEdgePoints(EdgeTable edgePoints)
 {
@@ -81,16 +64,16 @@ void initializeEdgePoints(EdgeTable edgePoints)
     }
 }
 
-void EdgesToTable(point& v1, point& v2, EdgeTable& edgepoint)
+void EdgesToTable(Point& v1, Point& v2, EdgeTable& edgepoint)
 {
-    if (v1.y == v2.y) return; // horizontal edge, skip
-    if (v1.y > v2.y) swap(v1, v2);
+    if (v1.Y == v2.Y) return; // horizontal edge, skip
+    if (v1.Y > v2.Y) swap(v1, v2);
 
-    int y = (int)ceil(v1.y);
-    double x = v1.x + (y - v1.y) * (v2.x - v1.x) / (v2.y - v1.y);
-    double m = (v2.x - v1.x) / (v2.y - v1.y);
+    int y = (int)ceil(v1.Y);
+    double x = v1.X + (y - v1.Y) * (v2.X - v1.X) / (v2.Y - v1.Y);
+    double m = (v2.X - v1.X) / (v2.Y - v1.Y);
 
-    while (y < (int)v2.y && y < 800)
+    while (y < (int)v2.Y && y < 800)
     {
         if (x < edgepoint[y].xleft)
             edgepoint[y].xleft = (int)ceil(x);
@@ -101,47 +84,20 @@ void EdgesToTable(point& v1, point& v2, EdgeTable& edgepoint)
     }
 }
 
-void DrawPolygon(HDC hdc, vector<point>& vertices, EdgeTable& edgetable)
+void DrawPolygon(HDC hdc, vector<Point>& vertices, EdgeTable& edgetable)
 {
     int n = (int)vertices.size();
     if (n < 2) return;
 
-    point v1 = vertices[n - 1];
+    Point v1 = vertices[n - 1];
     for (int i = 0; i < n; i++)
     {
-        point v2 = vertices[i];
+        Point v2 = vertices[i];
         EdgesToTable(v1, v2, edgetable);
         v1 = v2;
     }
 }
 
-void DrawLine(HDC hdc, int x1, int y1, int x2, int y2, COLORREF color)
-{
-    int dx = abs(x2 - x1);
-    int dy = abs(y2 - y1);
-    int sx = (x1 < x2) ? 1 : -1;
-    int sy = (y1 < y2) ? 1 : -1;
-
-    bool isSteep = dy > dx;
-    if (isSteep) swap(dx, dy);
-
-    int err = 2 * dy - dx;
-    int x = x1, y = y1;
-
-    for (int i = 0; i <= dx; i++)
-    {
-        SetPixel(hdc, x, y, color);
-        if (err > 0)
-        {
-            if (isSteep) x += sx;
-            else y += sy;
-            err -= 2 * dx;
-        }
-        if (isSteep) y += sy;
-        else x += sx;
-        err += 2 * dy;
-    }
-}
 
 void Table2screen(HDC hdc, EdgeTable& edgetable, COLORREF c)
 {
@@ -151,12 +107,12 @@ void Table2screen(HDC hdc, EdgeTable& edgetable, COLORREF c)
             continue;
         if (edgetable[y].xleft < edgetable[y].xright)
         {
-            DrawLine(hdc, edgetable[y].xleft, y, edgetable[y].xright, y, c);
+            DrawLineMidpoint(hdc, edgetable[y].xleft, y, edgetable[y].xright, y, c);
         }
     }
 }
 
-void CurveFill(HDC hdc, vector<point>& vertices, COLORREF c)
+void CurveFill(HDC hdc, vector<Point>& vertices, COLORREF c)
 {
     EdgeTable edgetable;
     initializeEdgePoints(edgetable);
@@ -190,25 +146,25 @@ void InsertNodeInSortedLinedList(Node*& head, Node* edge) {
     }
 }
 
-void InitEdgeTable(const vector<point>& polygon) {
+void InitEdgeTable(const vector<Point>& polygon) {
     memset(Table, 0, sizeof(Table));
     int n = (int)polygon.size();
 
     for (int i = 0; i < n; i++) {
-        point p1 = polygon[i];
-        point p2 = polygon[(i + 1) % n]; // wrap-around to first point
+        Point p1 = polygon[i];
+        Point p2 = polygon[(i + 1) % n]; // wrap-around to first point
 
-        if ((int)p1.y == (int)p2.y) continue; // horizontal edges skipped
+        if ((int)p1.Y == (int)p2.Y) continue; // horizontal edges skipped
 
-        if (p1.y > p2.y) swap(p1, p2);
+        if (p1.Y > p2.Y) swap(p1, p2);
 
         Node* node = new Node;
-        node->ymax = (int)p2.y;
-        node->x = p1.x;
-        node->mi = (p2.x - p1.x) / (p2.y - p1.y);
+        node->ymax = (int)p2.Y;
+        node->x = p1.X;
+        node->mi = (p2.X - p1.X) / (p2.Y - p1.Y);
         node->next = nullptr;
 
-        int yIndex = (int)p1.y;
+        int yIndex = (int)p1.Y;
         if (yIndex >= 0 && yIndex < MAX_HEIGHT)
             InsertNodeInSortedLinedList(Table[yIndex], node);
         else
@@ -228,7 +184,7 @@ void CleanupEdgeTable() {
     }
 }
 
-void FillPolygon(HDC hdc, COLORREF color, const vector<point>& polygon) {
+void FillPolygon(HDC hdc, COLORREF color, const vector<Point>& polygon) {
     InitEdgeTable(polygon);
     vector<Node*> ActiveEdgeTable;
 
@@ -271,9 +227,9 @@ void FillPolygon(HDC hdc, COLORREF color, const vector<point>& polygon) {
 
 // --- Hermite and Cardinal Spline Curves ---
 
-void DrawHermiteCurve(HDC hdc, point p1, point t1, point p2, point t2, COLORREF color) {
+void HermiteCurve(HDC hdc, Point p1, Point t1, Point p2, Point t2, COLORREF color) {
     int steps = 100; // Number of steps for the curve
-    SetPixel(hdc, (int)p1.x, (int)p1.y, color);
+    SetPixel(hdc, (int)p1.X, (int)p1.Y, color);
     for (int i = 1; i <= steps; i++) {
         double t = (double)i / steps;
         double t2_ = t * t;
@@ -284,20 +240,20 @@ void DrawHermiteCurve(HDC hdc, point p1, point t1, point p2, point t2, COLORREF 
         double h3 = t3 - 2 * t2_ + t;
         double h4 = t3 - t2_;
 
-        double x = h1 * p1.x + h2 * p2.x + h3 * t1.x + h4 * t2.x;
-        double y = h1 * p1.y + h2 * p2.y + h3 * t1.y + h4 * t2.y;
-        point pt(x, y);
+        double x = h1 * p1.X + h2 * p2.X + h3 * t1.X + h4 * t2.X;
+        double y = h1 * p1.Y + h2 * p2.Y + h3 * t1.Y + h4 * t2.Y;
+        Point pt(x, y);
 
-        SetPixel(hdc, (int)pt.x, (int)pt.y, color);
+        SetPixel(hdc, (int)pt.X, (int)pt.Y, color);
     }
 }
 
-void CardinalSplineCurve(HDC hdc, vector<point>& points, double tensionfactor, COLORREF color)
+void CardinalSplineCurve(HDC hdc, vector<Point>& points, double tensionfactor, COLORREF color)
 {
     int n = (int)points.size();
     if (n < 2) return;
 
-    vector<point> tangents(n);
+    vector<Point> tangents(n);
 
     for (int i = 0; i < n; i++)
     {
@@ -314,8 +270,7 @@ void CardinalSplineCurve(HDC hdc, vector<point>& points, double tensionfactor, C
 
     for (int i = 0; i < n - 1; i++)
     {
-        DrawHermiteCurve(hdc, points[i], tangents[i], points[i + 1], tangents[i + 1], color);
+        HermiteCurve(hdc, points[i], tangents[i], points[i + 1], tangents[i + 1], color);
     }
 }
-
 
