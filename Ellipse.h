@@ -1,3 +1,4 @@
+
 #include <windows.h>
 #include <math.h>
 
@@ -67,6 +68,5 @@ void MidPointEllipse(HDC hdc, int a, int b, int Xc, int Yc, COLORREF c) {
         }
     }
 }
-
 
 
