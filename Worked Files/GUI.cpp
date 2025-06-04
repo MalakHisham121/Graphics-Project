@@ -93,6 +93,7 @@ std::map<std::wstring, COLORREF> shapeColorMap = {
 };
 
 
+
 void drawUI(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     // Large font (Welcome text)
     hFontLarge = CreateFont(
@@ -204,13 +205,13 @@ void drawUI(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         hwnd, (HMENU)ID_BTN_DRAW, NULL, NULL);
     SendMessage(hDrawButton, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hSave = CreateWindowEx(0, L"BUTTON", L"Save to File",
+    HWND hSave = CreateWindowEx(0, L"BUTTON", L"Save Screen",
         WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER,
         312, 350, 120, 25,
         hwnd, (HMENU)ID_BTN_SAVE, NULL, NULL);
     SendMessage(hSave, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hLoad = CreateWindowEx(0, L"BUTTON", L"Load from File",
+    HWND hLoad = CreateWindowEx(0, L"BUTTON", L"Load Screen",
         WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER,
         456, 350, 120, 25,
         hwnd, (HMENU)ID_BTN_LOAD, NULL, NULL);
@@ -277,6 +278,7 @@ std::wstring GetComboBoxSelectedText(HWND comboBox) {
 
 
 LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    static HWND hQuarterCombo; // store handle to combo box
     static int clickCount = 0;
     COLORREF drawColor = color;
     HDC hdc = GetDC(hwnd);
@@ -285,7 +287,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     switch (msg) {
         // Create drop down 
     case WM_CREATE: {
-        HWND hQuarterCombo = CreateWindow(
+        hQuarterCombo = CreateWindow(
             L"COMBOBOX", NULL,
             CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL,
             10, 10, 100, 100, hwnd, (HMENU)1, ((LPCREATESTRUCT)lParam)->hInstance, NULL
@@ -299,6 +301,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
         break;
     }
+
     case WM_LBUTTONDOWN: {
 
         X1 = LOWORD(lParam);
@@ -551,9 +554,15 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return TRUE;
     }
     case WM_COMMAND: {
-
+        if (LOWORD(wParam) == 1 && HIWORD(wParam) == CBN_SELCHANGE) {
+            int index = SendMessage(hQuarterCombo, CB_GETCURSEL, 0, 0);
+            if (index != CB_ERR) {
+                selectQuarter = index + 1;
+            }
+        }
         break;
     }
+
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
