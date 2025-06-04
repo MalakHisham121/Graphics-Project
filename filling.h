@@ -17,32 +17,55 @@ WCHAR szWindowClass[MAX_LOADSTRING];
 
 // --- Flood Fill Functions ---
 
-void FloodFillRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF fc)
+void FloodFillRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF borderColor, COLORREF fc)
 {
     COLORREF C = GetPixel(hdc, x, y);
-    if (C == bc || C == fc) return;
+
+    // Stop filling if pixel is border or already fill color
+    if (C == borderColor || C == fc) return;
+
+    // Fill only pixels that are background color
+    if (C != bc) return;
+
     SetPixel(hdc, x, y, fc);
-    FloodFillRecursive(hdc, x + 1, y, bc, fc);
-    FloodFillRecursive(hdc, x - 1, y, bc, fc);
-    FloodFillRecursive(hdc, x, y + 1, bc, fc);
-    FloodFillRecursive(hdc, x, y - 1, bc, fc);
+
+    FloodFillRecursive(hdc, x + 1, y, bc, borderColor, fc);
+    FloodFillRecursive(hdc, x - 1, y, bc, borderColor, fc);
+    FloodFillRecursive(hdc, x, y + 1, bc, borderColor, fc);
+    FloodFillRecursive(hdc, x, y - 1, bc, borderColor, fc);
 }
 
-void FloodFillNonRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF fc)
+const int MAX_FILL_POINTS = 1000000;
+
+void FloodFillNonRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF borderColor, COLORREF fc)
 {
     stack<POINT> st;
     st.push({ x, y });
+    int count = 0;
+
     while (!st.empty())
     {
         POINT p = st.top();
         st.pop();
+
         COLORREF C = GetPixel(hdc, p.x, p.y);
-        if (C == bc || C == fc) continue;
+
+        if (C == borderColor || C == fc) continue;
+
+        if (C != bc) continue;
+
         SetPixel(hdc, p.x, p.y, fc);
+
         st.push({ p.x + 1, p.y });
         st.push({ p.x - 1, p.y });
         st.push({ p.x, p.y + 1 });
         st.push({ p.x, p.y - 1 });
+        count++;
+    }
+
+    if (count >= MAX_FILL_POINTS)
+    {
+        MessageBox(NULL, L"Flood fill stopped to avoid freezing (too large area).", L"Warning", MB_OK);
     }
 }
 
@@ -224,6 +247,8 @@ void FillPolygon(HDC hdc, COLORREF color, const vector<Point>& polygon) {
 
     CleanupEdgeTable(); // free allocated memory
 }
+
+
 
 // --- Hermite and Cardinal Spline Curves ---
 
