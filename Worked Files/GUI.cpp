@@ -7,6 +7,9 @@
 #include "filling.h"
 #include "Ellipse.h"
 #include "clipping.h"
+// use the following commands to compile and run the code 
+// g++ GUI.cpp -o GUI -DUNICODE -D_UNICODE -lgdi32 -lcomdlg32 -municode   
+// .\GUI
 
 #define ID_COMBO_SHAPE      101
 #define ID_COMBO_COLOR      102
@@ -20,9 +23,10 @@
 #define ID_COMBO_ALG        110
 #define IDC_CUSTOM_COLOR_BUTTON 111
 #define IDC_CUSTOM_BCOLOR_BUTTON 112
+#define ID_QUARTER_COMBO    113
 
 HFONT hFontLarge, hFontMedium, hFontSmall;
-HCURSOR currentCursor = LoadCursor(NULL, IDC_ARROW);
+HCURSOR currentCursor = LoadCursorW(NULL, IDC_ARROW);
 HBRUSH drawingBackgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
 HWND hDrawingWindow = NULL;
 std::wstring algorithm = L"";
@@ -30,7 +34,7 @@ std::wstring shape = L"";
 COLORREF color;
 COLORREF customColor = RGB(0, 0, 0);
 COLORREF bcolor = RGB(0, 0, 0);
-std::vector<Point> clickPoints;
+std::vector<Point> clickPoints; // Point from filling.h
 int clickCount = 0;
 int X1, Y1, X2, Y2;
 int Xc, Yc, R;
@@ -64,112 +68,110 @@ std::map<std::wstring, COLORREF> shapeColorMap = {
     {L"Purple", RGB(128, 0, 128)},
 };
 
+void drawUI(HWND hwnd) {
+    hFontLarge = CreateFontW(-18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+    hFontMedium = CreateFontW(-16, 0, 0, 0, FW_MEDIUM, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
 
+    HWND hRibbon = CreateWindowExW(0, L"STATIC", L"Graphics GUI", WS_CHILD | WS_VISIBLE, 10, 10, 200, 30, hwnd, NULL, NULL, NULL);
+    SendMessageW(hRibbon, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-void drawUI(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    hFontLarge = CreateFont(-18, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    hFontMedium = CreateFont(-16, 0, 0, 0, FW_MEDIUM, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+    HWND hWelcome = CreateWindowExW(0, L"STATIC", L"Welcome to Our Drawing Program!", WS_CHILD | WS_VISIBLE | SS_CENTER, 5, 60, 590, 30, hwnd, (HMENU)ID_STATIC_WELCOME, NULL, NULL);
+    SendMessageW(hWelcome, WM_SETFONT, (WPARAM)hFontLarge, TRUE);
 
-    HWND hRibbon = CreateWindowEx(0, L"STATIC", L"Graphics GUI", WS_CHILD | WS_VISIBLE, 10, 10, 200, 30, hwnd, NULL, NULL, NULL);
-    SendMessage(hRibbon, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hShapeLabel = CreateWindowExW(0, L"STATIC", L"Shape:", WS_CHILD | WS_VISIBLE, 80, 120, 120, 25, hwnd, NULL, NULL, NULL);
+    SendMessageW(hShapeLabel, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hWelcome = CreateWindowEx(0, L"STATIC", L"Welcome to Our Drawing Program!", WS_CHILD | WS_VISIBLE | SS_CENTER, 5, 60, 590, 30, hwnd, (HMENU)ID_STATIC_WELCOME, NULL, NULL);
-    SendMessage(hWelcome, WM_SETFONT, (WPARAM)hFontLarge, TRUE);
+    HWND hShapeBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 120, 250, 200, hwnd, (HMENU)ID_COMBO_SHAPE, NULL, NULL);
+    SendMessageW(hShapeBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hShapeLabel = CreateWindowEx(0, L"STATIC", L"Shape:", WS_CHILD | WS_VISIBLE, 80, 120, 120, 25, hwnd, NULL, NULL, NULL);
-    SendMessage(hShapeLabel, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hAlgorithm = CreateWindowExW(0, L"STATIC", L"Algorithm:", WS_CHILD | WS_VISIBLE, 80, 150, 120, 25, hwnd, NULL, NULL, NULL);
+    SendMessageW(hAlgorithm, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hShapeBox = CreateWindowEx(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 120, 250, 200, hwnd, (HMENU)ID_COMBO_SHAPE, NULL, NULL);
-    SendMessage(hShapeBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hAlgBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 150, 250, 200, hwnd, (HMENU)ID_COMBO_ALG, NULL, NULL);
+    SendMessageW(hAlgBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hAlgorithm = CreateWindowEx(0, L"STATIC", L"Algorithm:", WS_CHILD | WS_VISIBLE, 80, 150, 120, 25, hwnd, NULL, NULL, NULL);
-    SendMessage(hAlgorithm, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hShapeColor = CreateWindowExW(0, L"STATIC", L"Shape Color:", WS_CHILD | WS_VISIBLE, 80, 190, 120, 25, hwnd, NULL, NULL, NULL);
+    SendMessageW(hShapeColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hAlgBox = CreateWindowEx(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 150, 250, 200, hwnd, (HMENU)ID_COMBO_ALG, NULL, NULL);
-    SendMessage(hAlgBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hShapeColorBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 190, 250, 200, hwnd, (HMENU)ID_COMBO_COLOR, NULL, NULL);
+    SendMessageW(hShapeColorBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hShapeColor = CreateWindowEx(0, L"STATIC", L"Shape Color:", WS_CHILD | WS_VISIBLE, 80, 190, 120, 25, hwnd, NULL, NULL, NULL);
-    SendMessage(hShapeColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hMouse = CreateWindowExW(0, L"STATIC", L"Mouse Shape:", WS_CHILD | WS_VISIBLE, 80, 230, 120, 25, hwnd, NULL, NULL, NULL);
+    SendMessageW(hMouse, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hShapeColorBox = CreateWindowEx(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 190, 250, 200, hwnd, (HMENU)ID_COMBO_COLOR, NULL, NULL);
-    SendMessage(hShapeColorBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hMouseBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 230, 250, 200, hwnd, (HMENU)ID_COMBO_CURSOR, NULL, NULL);
+    SendMessageW(hMouseBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hMouse = CreateWindowEx(0, L"STATIC", L"Mouse Shape:", WS_CHILD | WS_VISIBLE, 80, 230, 120, 25, hwnd, NULL, NULL, NULL);
-    SendMessage(hMouse, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hBackground = CreateWindowExW(0, L"BUTTON", L"Change Background Color", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 300, 270, 25, hwnd, (HMENU)ID_BTN_WHITE_BG, NULL, NULL);
+    SendMessageW(hBackground, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hMouseBox = CreateWindowEx(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 230, 250, 200, hwnd, (HMENU)ID_COMBO_CURSOR, NULL, NULL);
-    SendMessage(hMouseBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hCustomColor = CreateWindowW(L"BUTTON", L"Custom Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 456, 300, 120, 25, hwnd, (HMENU)IDC_CUSTOM_COLOR_BUTTON, NULL, NULL);
+    SendMessageW(hCustomColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hBackground = CreateWindowEx(0, L"BUTTON", L"Change Background Color", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 300, 270, 25, hwnd, (HMENU)ID_BTN_WHITE_BG, NULL, NULL);
-    SendMessage(hBackground, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hCustomBColor = CreateWindowW(L"BUTTON", L"Border Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 24, 300, 120, 25, hwnd, (HMENU)IDC_CUSTOM_BCOLOR_BUTTON, NULL, NULL);
+    SendMessageW(hCustomBColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hCustomColor = CreateWindow(L"BUTTON", L"Custom Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 456, 300, 120, 25, hwnd, (HMENU)IDC_CUSTOM_COLOR_BUTTON, NULL, NULL);
-    SendMessage(hCustomColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hClear = CreateWindowExW(0, L"BUTTON", L"Clear Screen", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 24, 350, 120, 25, hwnd, (HMENU)ID_BTN_CLEAR, NULL, NULL);
+    SendMessageW(hClear, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hCustomBColor = CreateWindow(L"BUTTON", L"Border Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 24, 300, 120, 25, hwnd, (HMENU)IDC_CUSTOM_BCOLOR_BUTTON, NULL, NULL);
-    SendMessage(hCustomBColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hDrawButton = CreateWindowExW(0, L"BUTTON", L"Draw", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 350, 120, 25, hwnd, (HMENU)ID_BTN_DRAW, NULL, NULL);
+    SendMessageW(hDrawButton, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hClear = CreateWindowEx(0, L"BUTTON", L"Clear Screen", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 24, 350, 120, 25, hwnd, (HMENU)ID_BTN_CLEAR, NULL, NULL);
-    SendMessage(hClear, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hSave = CreateWindowExW(0, L"BUTTON", L"Save to File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 312, 350, 120, 25, hwnd, (HMENU)ID_BTN_SAVE, NULL, NULL);
+    SendMessageW(hSave, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hDrawButton = CreateWindowEx(0, L"BUTTON", L"Draw", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 350, 120, 25, hwnd, (HMENU)ID_BTN_DRAW, NULL, NULL);
-    SendMessage(hDrawButton, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
-
-    HWND hSave = CreateWindowEx(0, L"BUTTON", L"Save to File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 312, 350, 120, 25, hwnd, (HMENU)ID_BTN_SAVE, NULL, NULL);
-    SendMessage(hSave, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
-
-    HWND hLoad = CreateWindowEx(0, L"BUTTON", L"Load from File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 456, 350, 120, 25, hwnd, (HMENU)ID_BTN_LOAD, NULL, NULL);
-    SendMessage(hLoad, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    HWND hLoad = CreateWindowExW(0, L"BUTTON", L"Load from File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 456, 350, 120, 25, hwnd, (HMENU)ID_BTN_LOAD, NULL, NULL);
+    SendMessageW(hLoad, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 }
 
-void populateShapeAlgorithm(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+void populateShapeAlgorithm(HWND hwnd) {
     HWND hShapeBox = GetDlgItem(hwnd, ID_COMBO_SHAPE);
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Line");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle Fill");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Square Fill");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Rectangle Fill");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Convex Fill");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Non-Convex Fill");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Flood Fill");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Cardinal Spline Curve");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Ellipse");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Rectangle Clipping");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Square Clipping");
-    SendMessage(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle Clipping");
-    SendMessage(hShapeBox, CB_SETCURSEL, 0, 0);
-    SendMessage(hwnd, WM_COMMAND, MAKEWPARAM(ID_COMBO_SHAPE, CBN_SELCHANGE), (LPARAM)hShapeBox);
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Line");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle Fill");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Square Fill");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Rectangle Fill");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Convex Fill");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Non-Convex Fill");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Flood Fill");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Cardinal Spline Curve");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Ellipse");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Rectangle Clipping");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Square Clipping");
+    SendMessageW(hShapeBox, CB_ADDSTRING, 0, (LPARAM)L"Circle Clipping");
+    SendMessageW(hShapeBox, CB_SETCURSEL, 0, 0);
+    SendMessageW(hwnd, WM_COMMAND, MAKEWPARAM(ID_COMBO_SHAPE, CBN_SELCHANGE), (LPARAM)hShapeBox);
 }
 
-void populateColorList(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+void populateColorList(HWND hwnd) {
     HWND hColorBox = GetDlgItem(hwnd, ID_COMBO_COLOR);
     for (const auto& pair : shapeColorMap) {
-        SendMessage(hColorBox, CB_ADDSTRING, 0, (LPARAM)pair.first.c_str());
+        SendMessageW(hColorBox, CB_ADDSTRING, 0, (LPARAM)pair.first.c_str());
     }
-    SendMessage(hColorBox, CB_SETCURSEL, 0, 0);
+    SendMessageW(hColorBox, CB_SETCURSEL, 0, 0);
 }
 
-void populateMouseList(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+void populateMouseList(HWND hwnd) {
     HWND hMouseBox = GetDlgItem(hwnd, ID_COMBO_CURSOR);
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Arrow");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"I-Beam");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Cross");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Hand");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Wait");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"No");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size All");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size NW-SE");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size NE-SW");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size WE");
-    SendMessage(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size NS");
-    SendMessage(hMouseBox, CB_SETCURSEL, 0, 0);
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Arrow");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"I-Beam");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Cross");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Hand");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Wait");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"No");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size All");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size NW-SE");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size NE-SW");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size WE");
+    SendMessageW(hMouseBox, CB_ADDSTRING, 0, (LPARAM)L"Size NS");
+    SendMessageW(hMouseBox, CB_SETCURSEL, 0, 0);
 }
 
 std::wstring GetComboBoxSelectedText(HWND comboBox) {
-    int sel = (int)SendMessage(comboBox, CB_GETCURSEL, 0, 0);
+    int sel = (int)SendMessageW(comboBox, CB_GETCURSEL, 0, 0);
     if (sel == CB_ERR) return L"";
     wchar_t buffer[256];
-    SendMessage(comboBox, CB_GETLBTEXT, sel, (LPARAM)buffer);
+    SendMessageW(comboBox, CB_GETLBTEXT, sel, (LPARAM)buffer);
     return std::wstring(buffer);
 }
 
@@ -190,21 +192,25 @@ std::wstring GetComboBoxSelectedText(HWND comboBox) {
 LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     static HDC hdc;
     static PAINTSTRUCT ps;
+    static HWND hQuarterCombo;
+    static int clickCount = 0;
 
     switch (msg) {
     case WM_CREATE: {
-        HWND hQuarterCombo = CreateWindow(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL, 10, 10, 100, 100, hwnd, (HMENU)1, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
-        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"1");
-        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"2");
-        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"3");
-        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"4");
-        SendMessage(hQuarterCombo, CB_SETCURSEL, 0, 0);
+        hQuarterCombo = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL, 10, 10, 100, 100, hwnd, (HMENU)ID_QUARTER_COMBO, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
+        SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"1");
+        SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"2");
+        SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"3");
+        SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"4");
+        SendMessageW(hQuarterCombo, CB_SETCURSEL, 0, 0);
         break;
     }
     case WM_COMMAND: {
-        if (LOWORD(wParam) == 1 && HIWORD(wParam) == CBN_SELCHANGE) {
-            HWND hQuarterCombo = GetDlgItem(hwnd, 1);
-            selectQuarter = SendMessage(hQuarterCombo, CB_GETCURSEL, 0, 0) + 1;
+        if (LOWORD(wParam) == ID_QUARTER_COMBO && HIWORD(wParam) == CBN_SELCHANGE) {
+            int index = SendMessageW(hQuarterCombo, CB_GETCURSEL, 0, 0);
+            if (index != CB_ERR) {
+                selectQuarter = index + 1;
+            }
         }
         break;
     }
@@ -290,7 +296,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         else {
             X1 = x;
             Y1 = y;
-            clickPoints.push_back(Point(X1, Y1));
+            clickPoints.push_back(Point{(double)x, (double)y});
             clickCount++;
             Xc = x;
             Yc = y;
@@ -312,18 +318,20 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         else if (!(shape == L"Rectangle Clipping" || shape == L"Square Clipping" || shape == L"Circle Clipping")) {
             X1 = LOWORD(lParam);
             Y1 = HIWORD(lParam);
-            clickPoints.push_back(Point(X1, Y1));
+            clickPoints.push_back(Point{(double)X1, (double)Y1});
             clickCount++;
         }
         break;
     }
     case WM_LBUTTONUP: {
         hdc = GetDC(hwnd);
-        X2 = LOWORD(lParam);
-        Y2 = HIWORD(lParam);
-        int X = X2;
-        int Y = Y2;
-        R = round(sqrt((X - Xc) * (X - Xc) + (Y - Yc) * (Y - Yc)));
+        int x = LOWORD(lParam);
+        int y = HIWORD(lParam);
+        X2 = x;
+        Y2 = y;
+        int X = x;
+        int Y = y;
+        R = round((double)(sqrt((double)((x - Xc) * (x - Xc)) + (double)(pow((y - Yc), 2)))));
 
         if (shape == L"Line") {
             if (algorithm == L"DDA") DrawLineDDA(hdc, X1, Y1, X2, Y2, color);
@@ -358,11 +366,11 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             if (algorithm == L"Hermit Curve [Vertical]") {
                 int dx = X2 - X1;
                 int dy = Y2 - Y1;
-                int lengthSq = max(abs(dx), abs(dy));
-                if (dx < 0) X2 = X1 - lengthSq; else X2 = X1 + lengthSq;
-                if (dy < 0) Y2 = Y1 - lengthSq; else Y2 = Y1 + lengthSq;
-                DrawSquare(hdc, X1, Y1, lengthSq, bcolor);
-                FillingSquareWithHermiteCurves(hdc, X1, Y1, lengthSq, 5, bcolor, color);
+                int length = max(abs(dx), abs(dy));
+                if (dx < 0) X2 = X1 - length; else X2 = X1 + length;
+                if (dy < 0) Y2 = Y1 - length; else Y2 = Y1 + length;
+                DrawSquare(hdc, X1, Y1, length, bcolor);
+                FillingSquareWithHermiteCurves(hdc, X1, Y1, length, 5, bcolor, color);
             }
             clickPoints.clear();
             clickCount = 0;
@@ -381,7 +389,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Convex Fill") {
             if (algorithm == L"Scanline") {
-                std::vector<Point> testConvex = { Point(100, 100), Point(200, 100), Point(150, 200), Point(170, 250), Point(90, 250) };
+                std::vector<Point> testConvex = {{100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250}};
                 CurveFill(hdc, testConvex, color);
             }
             clickPoints.clear();
@@ -389,7 +397,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Non-Convex Fill") {
             if (algorithm == L"Polygon Fill") {
-                std::vector<Point> testPolygon = { Point(100, 100), Point(200, 100), Point(150, 200), Point(170, 250), Point(90, 250) };
+                std::vector<Point> testPolygon = {{100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250}};
                 FillPolygon(hdc, color, testPolygon);
             }
             clickPoints.clear();
@@ -409,12 +417,9 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             clickPoints.clear();
             clickCount = 0;
         }
-        else if (shape == L"Cardinal Spline Curve") {
+        else if (shape == L"Cardinal Spline") {
             if (algorithm == L"Curve Algorithm") {
-                std::vector<Point> points;
-                for (const auto& p : clickPoints) points.push_back(Point((double)p.X, (double)p.Y));
-                CardinalSplineCurve(hdc, points, 0.5, color);
-                points.clear();
+                CardinalSplineCurve(hdc, clickPoints, 0.5, color);
             }
             clickPoints.clear();
             clickCount = 0;
@@ -446,38 +451,40 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         SetCursor(currentCursor);
         return TRUE;
     }
-    case WM_DESTROY:
+    case WM_DESTROY: {
+        if (hQuarterCombo) DestroyWindow(hQuarterCombo);
         PostQuitMessage(0);
         break;
+    }
     default:
-        return DefWindowProc(hwnd, msg, wParam, lParam);
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
     return 0;
 }
 
 HWND CreateDrawingWindow(HWND parent) {
-    WNDCLASS wc = {};
+    WNDCLASSW wc = {};
     wc.lpfnWndProc = DrawingWndProc;
-    wc.hInstance = GetModuleHandle(NULL);
+    wc.hInstance = GetModuleHandleW(NULL);
     wc.lpszClassName = L"DrawingWindowClass";
-    RegisterClass(&wc);
+    RegisterClassW(&wc);
 
-    return CreateWindowEx(0, L"DrawingWindowClass", L"Drawing Canvas", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 700, 100, 600, 500, parent, NULL, GetModuleHandle(NULL), NULL);
+    return CreateWindowExW(0, L"DrawingWindowClass", L"Drawing Canvas", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 700, 150, 600, 500, parent, NULL, GetModuleHandleW(NULL), NULL);
 }
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     static const int titleBarHeight = 40;
-    static RECT closeButtonRect = { 560, 5, 590, 35 };
+    static RECT closeButtonRect = { 560, 5, 590, 35};
 
     switch (msg) {
     case WM_ERASEBKGND: {
         return 1;
     }
     case WM_CREATE: {
-        drawUI(hwnd, msg, wParam, lParam);
-        populateShapeAlgorithm(hwnd, msg, wParam, lParam);
-        populateColorList(hwnd, msg, wParam, lParam);
-        populateMouseList(hwnd, msg, wParam, lParam);
+        drawUI(hwnd);
+        populateShapeAlgorithm(hwnd);
+        populateColorList(hwnd);
+        populateMouseList(hwnd);
         break;
     }
     case WM_PAINT: {
@@ -492,13 +499,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         DeleteObject(hBlack);
         SetTextColor(hdc, RGB(255, 255, 255));
         SetBkMode(hdc, TRANSPARENT);
-        TextOut(hdc, 10, 10, L"Graphics GUI", lstrlen(L"Graphics GUI"));
-        DrawText(hdc, L"X", 1, &closeButtonRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        TextOutW(hdc, 10, 10, L"Graphics GUI", lstrlenW(L"Graphics GUI"));
+        DrawTextW(hdc, L"X", 1, &closeButtonRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
         HPEN hPen = CreatePen(PS_SOLID, 2, RGB(0, 0, 0));
-        HGDIOBJ oldPen = SelectObject(hdc, hPen);
+        HGDIOBJ hOldPen = SelectObject(hdc, hPen);
         HGDIOBJ oldBrush = SelectObject(hdc, GetStockObject(NULL_BRUSH));
         Rectangle(hdc, 0, 0, 600, 400);
-        SelectObject(hdc, oldPen);
+        SelectObject(hdc, hOldPen);
         SelectObject(hdc, oldBrush);
         DeleteObject(hPen);
         EndPaint(hwnd, &ps);
@@ -508,8 +515,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         HDC hdcStatic = (HDC)wParam;
         HWND hStatic = (HWND)lParam;
         int id = GetDlgCtrlID(hStatic);
-        wchar_t text[100];
-        GetWindowText(hStatic, text, 100);
+        wchar_t text[256];
+        GetWindowTextW(hStatic, text, 256);
         if (wcscmp(text, L"Graphics GUI") == 0) {
             SetTextColor(hdcStatic, RGB(255, 255, 255));
             SetBkColor(hdcStatic, RGB(0, 0, 0));
@@ -517,7 +524,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             return (INT_PTR)hBrush;
         }
         if (id == ID_STATIC_WELCOME) {
-            SetTextColor(hdcStatic, RGB(0, 0, 0));
+            SetTextColor(hdcStatic, RGB(0, 0, 255));
             SetBkColor(hdcStatic, RGB(255, 255, 255));
             static HBRUSH whiteBrush = CreateSolidBrush(RGB(255, 255, 255));
             return (INT_PTR)whiteBrush;
@@ -529,10 +536,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         int y = HIWORD(lParam);
         if (y < titleBarHeight) {
             if (x >= closeButtonRect.left && x <= closeButtonRect.right && y >= closeButtonRect.top && y <= closeButtonRect.bottom) {
-                PostMessage(hwnd, WM_CLOSE, 0, 0);
+                PostMessageW(hwnd, WM_CLOSE, 0, 0);
             }
             else {
-                SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+                SendMessageW(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
             }
         }
         break;
@@ -541,17 +548,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (HIWORD(wParam) == CBN_SELCHANGE && LOWORD(wParam) == ID_COMBO_SHAPE) {
             HWND hShapeBox = GetDlgItem(hwnd, ID_COMBO_SHAPE);
             HWND hAlgBox = GetDlgItem(hwnd, ID_COMBO_ALG);
-            int index = SendMessage(hShapeBox, CB_GETCURSEL, 0, 0);
+            int index = SendMessageW(hShapeBox, CB_GETCURSEL, 0, 0);
             wchar_t selectedShape[100];
-            SendMessage(hShapeBox, CB_GETLBTEXT, index, (LPARAM)selectedShape);
-            SendMessage(hAlgBox, CB_RESETCONTENT, 0, 0);
+            SendMessageW(hShapeBox, CB_GETLBTEXT, index, (LPARAM)selectedShape);
+            SendMessageW(hAlgBox, CB_RESETCONTENT, 0, 0);
             for (const auto& alg : shapeAlgorithmMap[selectedShape]) {
-                SendMessage(hAlgBox, CB_ADDSTRING, 0, (LPARAM)alg.c_str());
+                SendMessageW(hAlgBox, CB_ADDSTRING, 0, (LPARAM)alg.c_str());
             }
-            SendMessage(hAlgBox, CB_SETCURSEL, 0, 0);
+            SendMessageW(hAlgBox, CB_SETCURSEL, 0, 0);
         }
         if (LOWORD(wParam) == IDC_CUSTOM_COLOR_BUTTON) {
-            CHOOSECOLOR cc;
+            CHOOSECOLORW cc;
             static COLORREF acrCustClr[16];
             ZeroMemory(&cc, sizeof(cc));
             cc.lStructSize = sizeof(cc);
@@ -559,13 +566,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             cc.lpCustColors = (LPDWORD)acrCustClr;
             cc.rgbResult = customColor;
             cc.Flags = CC_FULLOPEN | CC_RGBINIT;
-            if (ChooseColor(&cc)) {
+            if (ChooseColorW(&cc)) {
                 customColor = cc.rgbResult;
                 shapeColorMap[L"Custom"] = customColor;
                 HWND hColorBox = GetDlgItem(hwnd, ID_COMBO_COLOR);
-                int index = (int)SendMessage(hColorBox, CB_FINDSTRINGEXACT, -1, (LPARAM)L"Custom");
-                if (index == CB_ERR) index = (int)SendMessage(hColorBox, CB_ADDSTRING, 0, (LPARAM)L"Custom");
-                SendMessage(hColorBox, CB_SETCURSEL, index, 0);
+                int index = (int)SendMessageW(hColorBox, CB_FINDSTRINGEXACT, -1, (LPARAM)L"Custom");
+                if (index == CB_ERR) index = (int)SendMessageW(hColorBox, CB_ADDSTRING, 0, (LPARAM)L"Custom");
+                SendMessageW(hColorBox, CB_SETCURSEL, index, 0);
             }
         }
         if (LOWORD(wParam) == ID_BTN_DRAW) {
@@ -579,23 +586,24 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             if (!hDrawingWindow || !IsWindow(hDrawingWindow)) {
                 hDrawingWindow = CreateDrawingWindow(hwnd);
             }
-            MessageBox(hwnd, (L"Drawing: " + shape + L" using " + algorithm + L" in color " + colorName).c_str(), L"Draw", MB_OK);
+            MessageBoxW(hwnd, (L"Drawing: " + shape + L" using " + algorithm + L" in color " + colorName).c_str(), L"Draw", MB_OK);
         }
         if (HIWORD(wParam) == CBN_SELCHANGE && LOWORD(wParam) == ID_COMBO_CURSOR) {
             HWND hMouseBox = GetDlgItem(hwnd, ID_COMBO_CURSOR);
             std::wstring cursorName = GetComboBoxSelectedText(hMouseBox);
-            if (cursorName == L"Arrow") currentCursor = LoadCursor(NULL, IDC_ARROW);
-            else if (cursorName == L"I-Beam") currentCursor = LoadCursor(NULL, IDC_IBEAM);
-            else if (cursorName == L"Cross") currentCursor = LoadCursor(NULL, IDC_CROSS);
-            else if (cursorName == L"Hand") currentCursor = LoadCursor(NULL, IDC_HAND);
-            else if (cursorName == L"Wait") currentCursor = LoadCursor(NULL, IDC_WAIT);
-            else if (cursorName == L"No") currentCursor = LoadCursor(NULL, IDC_NO);
-            else if (cursorName == L"Size All") currentCursor = LoadCursor(NULL, IDC_SIZEALL);
-            else if (cursorName == L"Size NW-SE") currentCursor = LoadCursor(NULL, IDC_SIZENWSE);
-            else if (cursorName == L"Size NE-SW") currentCursor = LoadCursor(NULL, IDC_SIZENESW);
-            else if (cursorName == L"Size WE") currentCursor = LoadCursor(NULL, IDC_SIZEWE);
-            else if (cursorName == L"Size NS") currentCursor = LoadCursor(NULL, IDC_SIZENS);
-            else currentCursor = LoadCursor(NULL, IDC_ARROW);
+if (cursorName == L"Arrow") currentCursor = LoadCursorW(NULL, IDC_ARROW);
+else if (cursorName == L"I-Beam") currentCursor = LoadCursorW(NULL, IDC_IBEAM);
+else if (cursorName == L"Cross") currentCursor = LoadCursorW(NULL, IDC_CROSS);
+else if (cursorName == L"Hand") currentCursor = LoadCursorW(NULL, IDC_HAND);
+else if (cursorName == L"Wait") currentCursor = LoadCursorW(NULL, IDC_WAIT);
+else if (cursorName == L"No") currentCursor = LoadCursorW(NULL, IDC_NO);
+else if (cursorName == L"Size All") currentCursor = LoadCursorW(NULL, IDC_SIZEALL);
+else if (cursorName == L"Size NW-SE") currentCursor = LoadCursorW(NULL, IDC_SIZENWSE);
+else if (cursorName == L"Size NE-SW") currentCursor = LoadCursorW(NULL, IDC_SIZENESW);
+else if (cursorName == L"Size WE") currentCursor = LoadCursorW(NULL, IDC_SIZEWE);
+else if (cursorName == L"Size NS") currentCursor = LoadCursorW(NULL, IDC_SIZENS);
+else currentCursor = LoadCursorW(NULL, IDC_ARROW);
+
             SetCursor(currentCursor);
             InvalidateRect(hwnd, NULL, FALSE);
             if (hDrawingWindow && IsWindow(hDrawingWindow)) InvalidateRect(hDrawingWindow, NULL, FALSE);
@@ -613,7 +621,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
         }
         if (LOWORD(wParam) == ID_BTN_WHITE_BG) {
-            CHOOSECOLOR cc;
+            CHOOSECOLORW cc;
             static COLORREF acrCustClr[16];
             ZeroMemory(&cc, sizeof(cc));
             cc.lStructSize = sizeof(cc);
@@ -621,7 +629,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             cc.lpCustColors = (LPDWORD)acrCustClr;
             cc.rgbResult = customColor;
             cc.Flags = CC_FULLOPEN | CC_RGBINIT;
-            if (ChooseColor(&cc)) {
+            if (ChooseColorW(&cc)) {
                 drawingBackgroundBrush = CreateSolidBrush(cc.rgbResult);
             }
             else {
@@ -632,7 +640,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             }
         }
         if (LOWORD(wParam) == IDC_CUSTOM_BCOLOR_BUTTON) {
-            CHOOSECOLOR cc;
+            CHOOSECOLORW cc;
             static COLORREF acrCustClr[16];
             ZeroMemory(&cc, sizeof(cc));
             cc.lStructSize = sizeof(cc);
@@ -640,7 +648,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             cc.lpCustColors = (LPDWORD)acrCustClr;
             cc.rgbResult = bcolor;
             cc.Flags = CC_FULLOPEN | CC_RGBINIT;
-            if (ChooseColor(&cc)) {
+            if (ChooseColorW(&cc)) {
                 bcolor = cc.rgbResult;
             }
         }
@@ -659,31 +667,31 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         break;
     }
     default:
-        return DefWindowProc(hwnd, msg, wParam, lParam);
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
     return 0;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
     const wchar_t CLASS_NAME[] = L"MainMenuWindow";
-    WNDCLASS wc = {};
+    WNDCLASSW wc = {};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-    RegisterClass(&wc);
+wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    RegisterClassW(&wc);
 
-    HWND hwnd = CreateWindowEx(0, CLASS_NAME, NULL, WS_POPUP | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 600, 400, NULL, NULL, hInstance, NULL);
+    HWND hwnd = CreateWindowExW(0, CLASS_NAME, NULL, WS_POPUPWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, 600, 400, NULL, NULL, hInstance, NULL);
     if (!hwnd) return 0;
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
 
     MSG msg = {};
-    while (GetMessage(&msg, NULL, 0, 0)) {
+    while (GetMessageW(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        DispatchMessageW(&msg);
     }
     return 0;
 }
