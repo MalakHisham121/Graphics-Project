@@ -281,18 +281,6 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     COLORREF drawColor = color;
     HDC hdc = GetDC(hwnd);
 
-    //if (shape == L"Circle Fill") {     // need to implement a popup here to take quarter
-    //    int quarter = 1;
-    //    if (algorithm == L"Lines") {
-    //        FillingCircleWithLines(hdc, Xc, Yc, R, quarter, 5, drawColor);
-    //    }
-    //    else if (algorithm == L"Cricle") {
-    //        FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, 5, drawColor);
-    //    }
-    //    clickPoints.clear();
-    //    clickCount = 0;
-    //}
-
 
     switch (msg) {
         // Create drop down 
@@ -435,35 +423,56 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Convex Fill") {
             if (algorithm == L"Scanline") {
-                vector <Point> points;
-                for (int i = 0; i < clickPoints.size(); i++) {
-                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
-                }
-                CurveFill(hdc, points, drawColor);
-                points.clear();
+                vector<Point> testConvex = {
+                    Point(100, 100),
+                    Point(200, 100),
+                    Point(150, 200),
+                    Point(170, 250),
+                    Point(90, 250)
+                };
+                CurveFill(hdc, testConvex, drawColor);
 
             }
             clickPoints.clear();
             clickCount = 0;
         }
         else if (shape == L"Non-Convex Fill") {
-            if (algorithm == L"Polygon Fill") {     // 
-                vector <Point> points;
-                for (int i = 0; i < clickPoints.size(); i++) {
-                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
-                }
-                FillPolygon(hdc, drawColor, points);
-                points.clear();
+            if (algorithm == L"Polygon Fill") {
+                vector<Point> testPolygon = {
+                    Point(100, 100),
+                    Point(200, 100),
+                    Point(150, 200),
+                    Point(170, 250),
+                    Point(90, 250)
+                };
+                FillPolygon(hdc, drawColor, testPolygon);
+
             }
             clickPoints.clear();
             clickCount = 0;
-        }
+            }
+
         else if (shape == L"Flood Fill") {
+            int x_min = min(X1, X2);
+            int y_min = min(Y1, Y2);
+            int length = abs(X2 - X1);
+            int width = abs(Y2 - Y1);
+
+            // Draw the rectangle border
+            DrawRectangle(hdc, x_min, y_min, length, width, bcolor);
+
+            // Pick seed point inside rectangle
+            int seedX = x_min + length / 2;
+            int seedY = y_min + width / 2;
+
+            COLORREF bc = GetPixel(hdc, seedX, seedY);
+
             if (algorithm == L"Recursive") {
-                FloodFillRecursive(hdc, X2, Y2, bcolor, drawColor);
+                FloodFillRecursive(hdc, seedX, seedY, bc, bcolor, drawColor);
+
             }
             else if (algorithm == L"Non-Recursive") {
-                FloodFillNonRecursive(hdc, X2, Y2, bcolor, drawColor);
+                FloodFillNonRecursive(hdc, seedX, seedY, bc, bcolor, drawColor);
             }
             clickPoints.clear();
             clickCount = 0;
@@ -471,16 +480,17 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Cardinal Spline Curve") {
             if (algorithm == L"Curve Algorithm") {
-                vector <Point> points;
+                vector<Point> points;
                 for (int i = 0; i < clickPoints.size(); i++) {
-                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
+                    points.push_back(Point((double)clickPoints[i].X, (double)clickPoints[i].Y));
                 }
                 CardinalSplineCurve(hdc, points, 0.5, drawColor);
                 points.clear();
             }
             clickPoints.clear();
             clickCount = 0;
-        }
+            }
+
         else if (shape == L"Ellipse") {
             int dx = X2 - X1;
             int dy = Y2 - Y1;
