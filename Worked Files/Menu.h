@@ -1,11 +1,11 @@
 #pragma once
 
-#include "resource.h"
+//#include "resource.h"
 
 // Name : Shahd Elnassag
 // ID : 20220533
 
-#include <Windows.h>
+#include <windows.h>
 #include <cmath>
 #include <algorithm>
 
@@ -626,9 +626,9 @@ void FillingRectangleWithBezierCurves(HDC hdc, int x1, int y1, int length, int w
 //int X1 = 0, Y1 = 0, X2 = 0, Y2 = 0;
 //int U1 = 100, V1 = -200, U2 = 100, V2 = 200;
 // Global variables to store line endpoints
-int X1, Y1, X2, Y2;
+int extern X1, Y1, X2, Y2;
 // Global variables to Circle
-int Xc, Yc, R;
+int extern Xc, Yc, R;
 // Get quareter
-static int selectQuarter = 1; // default quarter
+//static int selectQuarter = 1; // default quarter
 

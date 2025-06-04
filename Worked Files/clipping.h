@@ -334,160 +334,160 @@ void DrawClippingWindow(HDC hdc) {
 
 }
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    static HDC hdc;
-    static PAINTSTRUCT ps;
+// LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+//     static HDC hdc;
+//     static PAINTSTRUCT ps;
 
-    switch (msg) {
-    case WM_COMMAND: {
-        int menuId = LOWORD(wParam);
-        switch (menuId) {
-        case 1:
-            currentWindow = RECTANGLE;
-            currentObject = OBJ_NONE;
-            currentState = SET_CLIP_WINDOW_P1;
-            clipWindowDefined = false;
-            tempPolygonVertices.clear();
-            InvalidateRect(hwnd, NULL, TRUE);
-            break;
-        case 2:
-            currentWindow = SQUARE;
-            currentObject = OBJ_NONE;
-            currentState = SET_CLIP_WINDOW_P1;
-            clipWindowDefined = false;
-            tempPolygonVertices.clear();
-            InvalidateRect(hwnd, NULL, TRUE);
-            break;
-        case 3: // Circle Window
-            currentWindow = CIRCLE;
-            currentObject = OBJ_NONE;
-            currentState = SET_CLIP_WINDOW_P1;
-            clipWindowDefined = false;
-            tempPolygonVertices.clear();
-            InvalidateRect(hwnd, NULL, TRUE);
-            break;
-        case 4: // Point
-            if (currentWindow != NONE) {
-                currentObject = OBJ_POINT;
-                currentState = SET_POINT;
-                tempPolygonVertices.clear();
-                InvalidateRect(hwnd, NULL, TRUE);
-            }
-            break;
-        case 5: // Line
-            if (currentWindow != NONE) {
-                currentObject = LINE;
-                currentState = SET_LINE_P1;
-                tempPolygonVertices.clear();
-                InvalidateRect(hwnd, NULL, TRUE);
-            }
-            break;
-        case 6: // Polygon (only for Rectangle)
-            if (currentWindow == RECTANGLE) {
-                currentObject = POLYGON;
-                currentState = SET_POLYGON;
-                tempPolygonVertices.clear();
-                InvalidateRect(hwnd, NULL, TRUE);
-            }
-            break;
-        }
-        break;
-    }
-    case WM_LBUTTONDOWN: {
-        int x = LOWORD(lParam);
-        int y = HIWORD(lParam);
-        hdc = GetDC(hwnd);
+//     switch (msg) {
+//     case WM_COMMAND: {
+//         int menuId = LOWORD(wParam);
+//         switch (menuId) {
+//         case 1:
+//             currentWindow = RECTANGLE;
+//             currentObject = OBJ_NONE;
+//             currentState = SET_CLIP_WINDOW_P1;
+//             clipWindowDefined = false;
+//             tempPolygonVertices.clear();
+//             InvalidateRect(hwnd, NULL, TRUE);
+//             break;
+//         case 2:
+//             currentWindow = SQUARE;
+//             currentObject = OBJ_NONE;
+//             currentState = SET_CLIP_WINDOW_P1;
+//             clipWindowDefined = false;
+//             tempPolygonVertices.clear();
+//             InvalidateRect(hwnd, NULL, TRUE);
+//             break;
+//         case 3: // Circle Window
+//             currentWindow = CIRCLE;
+//             currentObject = OBJ_NONE;
+//             currentState = SET_CLIP_WINDOW_P1;
+//             clipWindowDefined = false;
+//             tempPolygonVertices.clear();
+//             InvalidateRect(hwnd, NULL, TRUE);
+//             break;
+//         case 4: // Point
+//             if (currentWindow != NONE) {
+//                 currentObject = OBJ_POINT;
+//                 currentState = SET_POINT;
+//                 tempPolygonVertices.clear();
+//                 InvalidateRect(hwnd, NULL, TRUE);
+//             }
+//             break;
+//         case 5: // Line
+//             if (currentWindow != NONE) {
+//                 currentObject = LINE;
+//                 currentState = SET_LINE_P1;
+//                 tempPolygonVertices.clear();
+//                 InvalidateRect(hwnd, NULL, TRUE);
+//             }
+//             break;
+//         case 6: // Polygon (only for Rectangle)
+//             if (currentWindow == RECTANGLE) {
+//                 currentObject = POLYGON;
+//                 currentState = SET_POLYGON;
+//                 tempPolygonVertices.clear();
+//                 InvalidateRect(hwnd, NULL, TRUE);
+//             }
+//             break;
+//         }
+//         break;
+//     }
+//     case WM_LBUTTONDOWN: {
+//         int x = LOWORD(lParam);
+//         int y = HIWORD(lParam);
+//         hdc = GetDC(hwnd);
 
-        if (currentState == SET_CLIP_WINDOW_P1) {
-            point = Linepoint(x, y);
-            currentState = SET_CLIP_WINDOW_P2;
-        }
-        else if (currentState == SET_CLIP_WINDOW_P2) {
-            if (currentWindow == RECTANGLE) {
-                clipRect.X_min = min(point.x, (double)x);
-                clipRect.X_max = max(point.x, (double)x);
-                clipRect.Y_min = min(point.y, (double)y);
-                clipRect.Y_max = max(point.y, (double)y);
-                clipWindowDefined = true;
-            }
-            else if (currentWindow == SQUARE) {
-                double side = max(abs(x - point.x), abs(y - point.y));
-                clipRect.X_min = point.x;
-                clipRect.X_max = point.x + side;
-                clipRect.Y_min = point.y;
-                clipRect.Y_max = point.y + side;
-                clipWindowDefined = true;
-            }
-            else if (currentWindow == CIRCLE) {
-                clipCircle.xc = point.x;
-                clipCircle.yc = point.y;
-                clipCircle.r = sqrt(pow(x - point.x, 2) + pow(y - point.y, 2));
-                clipWindowDefined = true;
-            }
-            currentState = IDLE;
-            InvalidateRect(hwnd, NULL, TRUE);
-        }
-        else if (currentState == SET_POINT && clipWindowDefined) {
-            point = Linepoint(x, y);
-            if (currentWindow == RECTANGLE || currentWindow == SQUARE) {
-                RectangleClipping(hdc, 0, clipRect, point, point, Poly{});
-            }
-            else if (currentWindow == CIRCLE) {
+//         if (currentState == SET_CLIP_WINDOW_P1) {
+//             point = Linepoint(x, y);
+//             currentState = SET_CLIP_WINDOW_P2;
+//         }
+//         else if (currentState == SET_CLIP_WINDOW_P2) {
+//             if (currentWindow == RECTANGLE) {
+//                 clipRect.X_min = min(point.x, (double)x);
+//                 clipRect.X_max = max(point.x, (double)x);
+//                 clipRect.Y_min = min(point.y, (double)y);
+//                 clipRect.Y_max = max(point.y, (double)y);
+//                 clipWindowDefined = true;
+//             }
+//             else if (currentWindow == SQUARE) {
+//                 double side = max(abs(x - point.x), abs(y - point.y));
+//                 clipRect.X_min = point.x;
+//                 clipRect.X_max = point.x + side;
+//                 clipRect.Y_min = point.y;
+//                 clipRect.Y_max = point.y + side;
+//                 clipWindowDefined = true;
+//             }
+//             else if (currentWindow == CIRCLE) {
+//                 clipCircle.xc = point.x;
+//                 clipCircle.yc = point.y;
+//                 clipCircle.r = sqrt(pow(x - point.x, 2) + pow(y - point.y, 2));
+//                 clipWindowDefined = true;
+//             }
+//             currentState = IDLE;
+//             InvalidateRect(hwnd, NULL, TRUE);
+//         }
+//         else if (currentState == SET_POINT && clipWindowDefined) {
+//             point = Linepoint(x, y);
+//             if (currentWindow == RECTANGLE || currentWindow == SQUARE) {
+//                 RectangleClipping(hdc, 0, clipRect, point, point, Poly{});
+//             }
+//             else if (currentWindow == CIRCLE) {
 
-                CircleClipping(hdc, 0, clipCircle, point, point);
-            }
-            currentState = IDLE;
-        }
-        else if (currentState == SET_LINE_P1 && clipWindowDefined) {
-            lineP1 = Linepoint(x, y);
-            currentState = SET_LINE_P2;
-        }
-        else if (currentState == SET_LINE_P2 && clipWindowDefined) {
-            lineP2 = Linepoint(x, y);
-            if (currentWindow == RECTANGLE || currentWindow == SQUARE) {
-                RectangleClipping(hdc, 1, clipRect, lineP1, lineP2, Poly{});
-            }
-            else if (currentWindow == CIRCLE) {
-                CircleClipping(hdc, 1, clipCircle, lineP1, lineP2);
-            }
-            currentState = IDLE;
-        }
-        else if (currentState == SET_POLYGON && clipWindowDefined) {
-            tempPolygonVertices.push_back(Linepoint(x, y));
+//                 CircleClipping(hdc, 0, clipCircle, point, point);
+//             }
+//             currentState = IDLE;
+//         }
+//         else if (currentState == SET_LINE_P1 && clipWindowDefined) {
+//             lineP1 = Linepoint(x, y);
+//             currentState = SET_LINE_P2;
+//         }
+//         else if (currentState == SET_LINE_P2 && clipWindowDefined) {
+//             lineP2 = Linepoint(x, y);
+//             if (currentWindow == RECTANGLE || currentWindow == SQUARE) {
+//                 RectangleClipping(hdc, 1, clipRect, lineP1, lineP2, Poly{});
+//             }
+//             else if (currentWindow == CIRCLE) {
+//                 CircleClipping(hdc, 1, clipCircle, lineP1, lineP2);
+//             }
+//             currentState = IDLE;
+//         }
+//         else if (currentState == SET_POLYGON && clipWindowDefined) {
+//             tempPolygonVertices.push_back(Linepoint(x, y));
 
-            if (tempPolygonVertices.size() > 1) {
-                DrawLineDDA(hdc, round(tempPolygonVertices[tempPolygonVertices.size() - 2].x),
-                    round(tempPolygonVertices[tempPolygonVertices.size() - 2].y), round(tempPolygonVertices.back().x), round(tempPolygonVertices.back().y), RGB(255, 0, 0));
-            }
+//             if (tempPolygonVertices.size() > 1) {
+//                 DrawLineDDA(hdc, round(tempPolygonVertices[tempPolygonVertices.size() - 2].x),
+//                     round(tempPolygonVertices[tempPolygonVertices.size() - 2].y), round(tempPolygonVertices.back().x), round(tempPolygonVertices.back().y), RGB(255, 0, 0));
+//             }
 
-        }
-        ReleaseDC(hwnd, hdc);
-        break;
-    }
-    case WM_RBUTTONDOWN: {
-        if (currentState == SET_POLYGON && clipWindowDefined && tempPolygonVertices.size() >= 3) {
-            hdc = GetDC(hwnd);
-            polygon.vertices = tempPolygonVertices;
-            RectangleClipping(hdc, 2, clipRect, Linepoint(0, 0), Linepoint(0, 0), polygon);
-            tempPolygonVertices.clear();
-            currentState = IDLE;
-            ReleaseDC(hwnd, hdc);
-        }
-        break;
-    }
-    case WM_PAINT: {
-        hdc = BeginPaint(hwnd, &ps);
-        if (clipWindowDefined) {
-            DrawClippingWindow(hdc);
-        }
-        EndPaint(hwnd, &ps);
-        break;
-    }
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProcW(hwnd, msg, wParam, lParam);
-    }
-    return 0;
-}
+//         }
+//         ReleaseDC(hwnd, hdc);
+//         break;
+//     }
+//     case WM_RBUTTONDOWN: {
+//         if (currentState == SET_POLYGON && clipWindowDefined && tempPolygonVertices.size() >= 3) {
+//             hdc = GetDC(hwnd);
+//             polygon.vertices = tempPolygonVertices;
+//             RectangleClipping(hdc, 2, clipRect, Linepoint(0, 0), Linepoint(0, 0), polygon);
+//             tempPolygonVertices.clear();
+//             currentState = IDLE;
+//             ReleaseDC(hwnd, hdc);
+//         }
+//         break;
+//     }
+//     case WM_PAINT: {
+//         hdc = BeginPaint(hwnd, &ps);
+//         if (clipWindowDefined) {
+//             DrawClippingWindow(hdc);
+//         }
+//         EndPaint(hwnd, &ps);
+//         break;
+//     }
+//     case WM_DESTROY:
+//         PostQuitMessage(0);
+//         break;
+//     default:
+//         return DefWindowProcW(hwnd, msg, wParam, lParam);
+//     }
+//     return 0;
+// }
