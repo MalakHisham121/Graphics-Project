@@ -1,5 +1,5 @@
 #include <windows.h>
-#include "line.h"
+#include "Menu.h"
 #include <iostream>
 #include <vector>
 #include <math.h>
@@ -491,47 +491,3 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
     return 0;
 }
-
-//int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
-//    const wchar_t CLASS_NAME[] = L"ClippingWindow";
-//    WNDCLASSW wc = {};
-//    wc.lpfnWndProc = WndProc;
-//    wc.hInstance = hInstance;
-//    wc.lpszClassName = CLASS_NAME;
-//    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-//    RegisterClassW(&wc);
-//
-//    HWND hwnd = CreateWindowExW(
-//        0, CLASS_NAME, L"Clipping Algorithm Test", WS_OVERLAPPEDWINDOW,
-//        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, NULL, NULL, hInstance, NULL
-//    );
-//
-//    if (hwnd == NULL) {
-//        return 0;
-//    }
-//
-//
-//    HMENU hMenu = CreateMenu();
-//    HMENU hWindowMenu = CreatePopupMenu();
-//    HMENU hObjectMenu = CreatePopupMenu();
-//    AppendMenu(hWindowMenu, MF_STRING, 1, "Rectangle");
-//    AppendMenu(hWindowMenu, MF_STRING, 2, "Square");
-//    AppendMenu(hWindowMenu, MF_STRING, 3, "Circle");
-//    AppendMenu(hObjectMenu, MF_STRING, 4, "Point");
-//    AppendMenu(hObjectMenu, MF_STRING, 5, "Line");
-//    AppendMenu(hObjectMenu, MF_STRING, 6, "Polygon");
-//    AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hWindowMenu, "Clipping Window");
-//    AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hObjectMenu, "Object");
-//    SetMenu(hwnd, hMenu);
-//
-//    ShowWindow(hwnd, nCmdShow);
-//    UpdateWindow(hwnd);
-//
-//    MSG msg = {};
-//    while (GetMessage(&msg, NULL, 0, 0)) {
-//        TranslateMessage(&msg);
-//        DispatchMessage(&msg);
-//    }
-//
-//    return 0;
-//}

@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include "functions.h"
+//#include "functions.h"
 #include "filling.h"
 #include "Ellipse.h"
 //#include "clipping.h"
@@ -281,20 +281,36 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     COLORREF drawColor = color;
     HDC hdc = GetDC(hwnd);
 
-    if (shape == L"Circle Fill") {     // need to implement a popup here to take quarter
-        int quarter = 1;
-        if (algorithm == L"Lines") {
-            FillingCircleWithLines(hdc, Xc, Yc, R, quarter, 5, drawColor);
-        }
-        else if (algorithm == L"Cricle") {
-            FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, 5, drawColor);
-        }
-        clickPoints.clear();
-        clickCount = 0;
-    }
+    //if (shape == L"Circle Fill") {     // need to implement a popup here to take quarter
+    //    int quarter = 1;
+    //    if (algorithm == L"Lines") {
+    //        FillingCircleWithLines(hdc, Xc, Yc, R, quarter, 5, drawColor);
+    //    }
+    //    else if (algorithm == L"Cricle") {
+    //        FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, 5, drawColor);
+    //    }
+    //    clickPoints.clear();
+    //    clickCount = 0;
+    //}
 
 
     switch (msg) {
+        // Create drop down 
+    case WM_CREATE: {
+        HWND hQuarterCombo = CreateWindow(
+            L"COMBOBOX", NULL,
+            CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL,
+            10, 10, 100, 100, hwnd, (HMENU)1, ((LPCREATESTRUCT)lParam)->hInstance, NULL
+        );
+
+        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"1");
+        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"2");
+        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"3");
+        SendMessage(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"4");
+        SendMessage(hQuarterCombo, CB_SETCURSEL, 0, 0);
+
+        break;
+    }
     case WM_LBUTTONDOWN: {
 
         X1 = LOWORD(lParam);
@@ -358,6 +374,21 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             clickCount = 0;
 
         }
+        else if (shape == L"Circle Fill") {     // need to implement a popup here to take quarter
+
+            int quarter = selectQuarter;
+
+            if (algorithm == L"Lines") {
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                FillingCircleWithLines(hdc, Xc, Yc, R, quarter, 3, drawColor);
+            }
+            else if (algorithm == L"Circle") {
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, 3, drawColor);
+
+            }
+
+        }
         else if (shape == L"Square Fill") {
 
             if (algorithm == L"Hermit Curve [Vertical]") {
@@ -379,7 +410,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
                 DrawSquare(hdc, X1, Y1, lengthSq, bcolor);
 
-                FillingSquareWithHermiteCurves(hdc, X1,  Y1, lengthSq, 5, bcolor, drawColor);
+                FillingSquareWithHermiteCurves(hdc, X1, Y1, lengthSq, 5, bcolor, drawColor);
             }
             clickPoints.clear();
             clickCount = 0;
@@ -393,9 +424,9 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
                 int length = abs(X2 - X1); // width along X
 
                 int width = abs(Y2 - Y1); // height along Y
-                
+
                 DrawRectangle(hdc, x_min, y_min, length, width, bcolor);
-                
+
                 FillingRectangleWithBezierCurves(hdc, X1, Y1, length, width, 5, bcolor, drawColor);
 
             }
@@ -404,9 +435,9 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Convex Fill") {
             if (algorithm == L"Scanline") {
-                vector <point> points;
+                vector <Point> points;
                 for (int i = 0; i < clickPoints.size(); i++) {
-                    points.push_back(point(clickPoints[i].X, clickPoints[i].Y));
+                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
                 }
                 CurveFill(hdc, points, drawColor);
                 points.clear();
@@ -417,9 +448,9 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Non-Convex Fill") {
             if (algorithm == L"Polygon Fill") {     // 
-                vector <point> points;
+                vector <Point> points;
                 for (int i = 0; i < clickPoints.size(); i++) {
-                    points.push_back(point(clickPoints[i].X, clickPoints[i].Y));
+                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
                 }
                 FillPolygon(hdc, drawColor, points);
                 points.clear();
@@ -440,9 +471,9 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Cardinal Spline Curve") {
             if (algorithm == L"Curve Algorithm") {
-                vector <point> points;
+                vector <Point> points;
                 for (int i = 0; i < clickPoints.size(); i++) {
-                    points.push_back(point(clickPoints[i].X, clickPoints[i].Y));
+                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
                 }
                 CardinalSplineCurve(hdc, points, 0.5, drawColor);
                 points.clear();
@@ -510,7 +541,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         return TRUE;
     }
     case WM_COMMAND: {
-       
+
         break;
     }
     case WM_DESTROY:
