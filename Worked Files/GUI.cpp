@@ -29,6 +29,8 @@ HFONT hFontLarge, hFontMedium, hFontSmall;
 HCURSOR currentCursor = LoadCursorW(NULL, IDC_ARROW);
 HBRUSH drawingBackgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
 HWND hDrawingWindow = NULL;
+HBITMAP g_hBitmap = NULL;  // Global handle to store the loaded bitmap
+bool clear = false;
 std::wstring algorithm = L"";
 std::wstring shape = L"";
 COLORREF color;
@@ -41,8 +43,8 @@ int Xc, Yc, R;
 int selectQuarter = 1;
 
 std::vector<POINT> LineMidpoint, LineParametric, LineDirect, CircleDirect, CirclePolar,
-    CircleIterativePolar, CircleMidpoint, CircleModifiedMidpoint, CircleFillWithLines,
-    CircleWithCircles, HermitCurve, Square;
+CircleIterativePolar, CircleMidpoint, CircleModifiedMidpoint, CircleFillWithLines,
+CircleWithCircles, HermitCurve, Square;
 
 std::map<std::wstring, std::vector<std::wstring>> shapeAlgorithmMap = {
     {L"Line", {L"DDA", L"Midpoint", L"Parametric"}},
@@ -175,6 +177,148 @@ std::wstring GetComboBoxSelectedText(HWND comboBox) {
     return std::wstring(buffer);
 }
 
+//******************************************************************************************
+// Saving
+bool CaptureWindowToBMP(HWND hwnd) {
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    int width = rc.right - rc.left;
+    int height = rc.bottom - rc.top;
+
+    HDC hdcWindow = GetDC(hwnd);
+    HDC hdcMemDC = CreateCompatibleDC(hdcWindow);
+    HBITMAP hbmScreen = CreateCompatibleBitmap(hdcWindow, width, height);
+    HBITMAP hOld = (HBITMAP)SelectObject(hdcMemDC, hbmScreen);
+
+    BitBlt(hdcMemDC, 0, 0, width, height, hdcWindow, 0, 0, SRCCOPY);
+
+    BITMAP bmpScreen;
+    GetObject(hbmScreen, sizeof(BITMAP), &bmpScreen);
+
+    BITMAPFILEHEADER bmfHeader;
+    BITMAPINFOHEADER bi = {};
+    bi.biSize = sizeof(BITMAPINFOHEADER);
+    bi.biWidth = bmpScreen.bmWidth;
+    bi.biHeight = -bmpScreen.bmHeight;  // Negative to flip vertically
+    bi.biPlanes = 1;
+    bi.biBitCount = 32;
+    bi.biCompression = BI_RGB;
+
+    DWORD dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
+
+    HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
+    char* lpbitmap = (char*)GlobalLock(hDIB);
+
+    GetDIBits(hdcWindow, hbmScreen, 0, (UINT)bmpScreen.bmHeight, lpbitmap, (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+
+    // Save File Dialog
+    wchar_t filePath[MAX_PATH] = L"";
+
+    // Default file name
+    SYSTEMTIME st;
+    GetLocalTime(&st);
+    swprintf_s(filePath, MAX_PATH, L"drawing_%04d-%02d-%02d_%02d-%02d-%02d.bmp",
+        st.wYear, st.wMonth, st.wDay,
+        st.wHour, st.wMinute, st.wSecond);
+
+    OPENFILENAMEW ofn = {};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = L"BMP Files (*.bmp)\0*.bmp\0All Files (*.*)\0*.*\0";
+    ofn.lpstrFile = filePath;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_OVERWRITEPROMPT;
+    ofn.lpstrDefExt = L"bmp";
+
+    if (!GetSaveFileNameW(&ofn)) {
+        MessageBoxW(hwnd, L"Save cancelled.", L"Info", MB_OK | MB_ICONINFORMATION);
+        // Cleanup
+        SelectObject(hdcMemDC, hOld);
+        DeleteObject(hbmScreen);
+        DeleteDC(hdcMemDC);
+        ReleaseDC(hwnd, hdcWindow);
+        GlobalUnlock(hDIB);
+        GlobalFree(hDIB);
+        return false;
+    }
+
+    HANDLE hFile = CreateFileW(filePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        MessageBoxW(hwnd, L"Failed to create file.", L"Error", MB_OK | MB_ICONERROR);
+        SelectObject(hdcMemDC, hOld);
+        DeleteObject(hbmScreen);
+        DeleteDC(hdcMemDC);
+        ReleaseDC(hwnd, hdcWindow);
+        GlobalUnlock(hDIB);
+        GlobalFree(hDIB);
+        return false;
+    }
+
+    DWORD dwSizeofDIB = dwBmpSize + sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+
+    bmfHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+    bmfHeader.bfSize = dwSizeofDIB;
+    bmfHeader.bfType = 0x4D42;  // 'BM'
+
+    DWORD dwBytesWritten;
+    WriteFile(hFile, &bmfHeader, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
+    WriteFile(hFile, &bi, sizeof(BITMAPINFOHEADER), &dwBytesWritten, NULL);
+    WriteFile(hFile, lpbitmap, dwBmpSize, &dwBytesWritten, NULL);
+
+    CloseHandle(hFile);
+
+    // Cleanup
+    GlobalUnlock(hDIB);
+    GlobalFree(hDIB);
+    SelectObject(hdcMemDC, hOld);
+    DeleteObject(hbmScreen);
+    DeleteDC(hdcMemDC);
+    ReleaseDC(hwnd, hdcWindow);
+
+    std::wstring msg = L"Successfully saved to:\n" + std::wstring(filePath);
+    MessageBoxW(hwnd, msg.c_str(), L"Success!", MB_OK | MB_ICONINFORMATION);
+
+    return true;
+}
+
+
+// Loading
+void OpenBitmapFile(HWND hwnd) {
+    wchar_t filePath[MAX_PATH] = L"";
+    OPENFILENAME ofn = { sizeof(ofn) };
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = L"Bitmap Files (*.bmp)\0*.bmp\0All Files (*.*)\0*.*\0";
+    ofn.lpstrFile = filePath;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_FILEMUSTEXIST;
+    ofn.lpstrTitle = L"Open Bitmap";
+
+    if (GetOpenFileName(&ofn)) {
+        if (g_hBitmap) DeleteObject(g_hBitmap);  // Free old bitmap if any
+        g_hBitmap = (HBITMAP)LoadImage(
+            NULL,
+            filePath,
+            IMAGE_BITMAP,
+            0, 0,
+            LR_LOADFROMFILE | LR_CREATEDIBSECTION
+        );
+        if (g_hBitmap) {
+            InvalidateRect(hwnd, NULL, TRUE);  // Force redraw
+            std::wstring msg = L"Successfully Loaded " + std::wstring(filePath);
+            MessageBoxW(hwnd, msg.c_str(), L"Success!", MB_OK);
+        }
+        else {
+            MessageBox(hwnd, L"Failed to load image!", L"Error", MB_ICONERROR);
+        }
+    }
+}
+
+
+//******************************************************************************************
+
+
+
 // void DrawClippingWindow(HDC hdc) {
 //     if (clipWindowDefined) {
 //         if (currentWindow == RECTANGLE) {
@@ -286,17 +430,17 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             else if (currentState == SET_POLYGON && clipWindowDefined && algorithm == L"Polygon" && shape == L"Rectangle Clipping") {
                 tempPolygonVertices.push_back(Linepoint(x, y));
                 if (tempPolygonVertices.size() > 1) {
-                    DrawLineDDA(hdc, round(tempPolygonVertices[tempPolygonVertices.size() - 2].x), 
-                                round(tempPolygonVertices[tempPolygonVertices.size() - 2].y), 
-                                round(tempPolygonVertices.back().x), 
-                                round(tempPolygonVertices.back().y), RGB(255, 0, 0));
+                    DrawLineDDA(hdc, round(tempPolygonVertices[tempPolygonVertices.size() - 2].x),
+                        round(tempPolygonVertices[tempPolygonVertices.size() - 2].y),
+                        round(tempPolygonVertices.back().x),
+                        round(tempPolygonVertices.back().y), RGB(255, 0, 0));
                 }
             }
         }
         else {
             X1 = x;
             Y1 = y;
-            clickPoints.push_back(Point{(double)x, (double)y});
+            clickPoints.push_back(Point{ (double)x, (double)y });
             clickCount++;
             Xc = x;
             Yc = y;
@@ -318,7 +462,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         else if (!(shape == L"Rectangle Clipping" || shape == L"Square Clipping" || shape == L"Circle Clipping")) {
             X1 = LOWORD(lParam);
             Y1 = HIWORD(lParam);
-            clickPoints.push_back(Point{(double)X1, (double)Y1});
+            clickPoints.push_back(Point{ (double)X1, (double)Y1 });
             clickCount++;
         }
         break;
@@ -389,7 +533,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Convex Fill") {
             if (algorithm == L"Scanline") {
-                std::vector<Point> testConvex = {{100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250}};
+                std::vector<Point> testConvex = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
                 CurveFill(hdc, testConvex, color);
             }
             clickPoints.clear();
@@ -397,7 +541,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Non-Convex Fill") {
             if (algorithm == L"Polygon Fill") {
-                std::vector<Point> testPolygon = {{100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250}};
+                std::vector<Point> testPolygon = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
                 FillPolygon(hdc, color, testPolygon);
             }
             clickPoints.clear();
@@ -441,6 +585,23 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     case WM_PAINT: {
         hdc = BeginPaint(hwnd, &ps);
         FillRect(hdc, &ps.rcPaint, drawingBackgroundBrush);
+
+        if (g_hBitmap && !clear) {
+            HDC hMemDC = CreateCompatibleDC(hdc);
+            SelectObject(hMemDC, g_hBitmap);
+
+            BITMAP bmp;
+            GetObject(g_hBitmap, sizeof(bmp), &bmp);
+
+            BitBlt(hdc, 0, 0, bmp.bmWidth, bmp.bmHeight, hMemDC, 0, 0, SRCCOPY);
+
+            DeleteDC(hMemDC);
+        }
+
+        if (clear) {
+            clear = !clear;
+        }
+
         if (shape == L"Rectangle Clipping" || shape == L"Square Clipping" || shape == L"Circle Clipping") {
             DrawClippingWindow(hdc);
         }
@@ -474,7 +635,7 @@ HWND CreateDrawingWindow(HWND parent) {
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     static const int titleBarHeight = 40;
-    static RECT closeButtonRect = { 560, 5, 590, 35};
+    static RECT closeButtonRect = { 560, 5, 590, 35 };
 
     switch (msg) {
     case WM_ERASEBKGND: {
@@ -591,18 +752,18 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         if (HIWORD(wParam) == CBN_SELCHANGE && LOWORD(wParam) == ID_COMBO_CURSOR) {
             HWND hMouseBox = GetDlgItem(hwnd, ID_COMBO_CURSOR);
             std::wstring cursorName = GetComboBoxSelectedText(hMouseBox);
-if (cursorName == L"Arrow") currentCursor = LoadCursorW(NULL, IDC_ARROW);
-else if (cursorName == L"I-Beam") currentCursor = LoadCursorW(NULL, IDC_IBEAM);
-else if (cursorName == L"Cross") currentCursor = LoadCursorW(NULL, IDC_CROSS);
-else if (cursorName == L"Hand") currentCursor = LoadCursorW(NULL, IDC_HAND);
-else if (cursorName == L"Wait") currentCursor = LoadCursorW(NULL, IDC_WAIT);
-else if (cursorName == L"No") currentCursor = LoadCursorW(NULL, IDC_NO);
-else if (cursorName == L"Size All") currentCursor = LoadCursorW(NULL, IDC_SIZEALL);
-else if (cursorName == L"Size NW-SE") currentCursor = LoadCursorW(NULL, IDC_SIZENWSE);
-else if (cursorName == L"Size NE-SW") currentCursor = LoadCursorW(NULL, IDC_SIZENESW);
-else if (cursorName == L"Size WE") currentCursor = LoadCursorW(NULL, IDC_SIZEWE);
-else if (cursorName == L"Size NS") currentCursor = LoadCursorW(NULL, IDC_SIZENS);
-else currentCursor = LoadCursorW(NULL, IDC_ARROW);
+            if (cursorName == L"Arrow") currentCursor = LoadCursorW(NULL, IDC_ARROW);
+            else if (cursorName == L"I-Beam") currentCursor = LoadCursorW(NULL, IDC_IBEAM);
+            else if (cursorName == L"Cross") currentCursor = LoadCursorW(NULL, IDC_CROSS);
+            else if (cursorName == L"Hand") currentCursor = LoadCursorW(NULL, IDC_HAND);
+            else if (cursorName == L"Wait") currentCursor = LoadCursorW(NULL, IDC_WAIT);
+            else if (cursorName == L"No") currentCursor = LoadCursorW(NULL, IDC_NO);
+            else if (cursorName == L"Size All") currentCursor = LoadCursorW(NULL, IDC_SIZEALL);
+            else if (cursorName == L"Size NW-SE") currentCursor = LoadCursorW(NULL, IDC_SIZENWSE);
+            else if (cursorName == L"Size NE-SW") currentCursor = LoadCursorW(NULL, IDC_SIZENESW);
+            else if (cursorName == L"Size WE") currentCursor = LoadCursorW(NULL, IDC_SIZEWE);
+            else if (cursorName == L"Size NS") currentCursor = LoadCursorW(NULL, IDC_SIZENS);
+            else currentCursor = LoadCursorW(NULL, IDC_ARROW);
 
             SetCursor(currentCursor);
             InvalidateRect(hwnd, NULL, FALSE);
@@ -618,6 +779,7 @@ else currentCursor = LoadCursorW(NULL, IDC_ARROW);
                 clipWindowDefined = false;
                 tempPolygonVertices.clear();
                 InvalidateRect(hDrawingWindow, NULL, TRUE);
+                clear = true;
             }
         }
         if (LOWORD(wParam) == ID_BTN_WHITE_BG) {
@@ -652,6 +814,17 @@ else currentCursor = LoadCursorW(NULL, IDC_ARROW);
                 bcolor = cc.rgbResult;
             }
         }
+
+        // Save btn
+        if (LOWORD(wParam) == ID_BTN_SAVE) {
+            CaptureWindowToBMP(hDrawingWindow);
+        }
+
+        // Load btn
+        if (LOWORD(wParam) == ID_BTN_LOAD) {
+            OpenBitmapFile(hDrawingWindow);
+        }
+
         break;
     }
     case WM_SETCURSOR: {
@@ -678,7 +851,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = CLASS_NAME;
-wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
     wc.hCursor = LoadCursorW(NULL, IDC_ARROW);
     RegisterClassW(&wc);
 
