@@ -65,7 +65,7 @@ void FloodFillNonRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF borderCo
 
     if (count >= MAX_FILL_POINTS)
     {
-MessageBoxW(NULL, L"Flood fill stopped to avoid freezing (too large area).", L"Warning", MB_OK);
+        MessageBoxW(NULL, L"Flood fill stopped to avoid freezing (too large area).", L"Warning", MB_OK);
     }
 }
 

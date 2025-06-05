@@ -561,13 +561,21 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             clickPoints.clear();
             clickCount = 0;
         }
-        else if (shape == L"Cardinal Spline") {
+        else if (shape == L"Cardinal Spline Curve") {
             if (algorithm == L"Curve Algorithm") {
-                CardinalSplineCurve(hdc, clickPoints, 0.5, color);
+                vector<Point> points;
+                for (int i = 0; i < clickPoints.size(); i++) {
+                    points.push_back(clickPoints[i]);
+                }
+                if (points.size() >= 4) {
+                    CardinalSplineCurve(hdc, points, 0.5, color);
+                }
+                points.clear();
             }
             clickPoints.clear();
             clickCount = 0;
         }
+
         else if (shape == L"Ellipse") {
             int dx = X2 - X1;
             int dy = Y2 - Y1;
