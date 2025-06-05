@@ -561,7 +561,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             clickPoints.clear();
             clickCount = 0;
         }
-        else if (shape == L"Cardinal Spline") {
+        else if (shape == L"Cardinal Spline Curve") {
             if (algorithm == L"Curve Algorithm") {
                 CardinalSplineCurve(hdc, clickPoints, 0.5, color);
             }
