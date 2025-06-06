@@ -492,11 +492,11 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         else if (shape == L"Circle Fill") {
             int quarter = selectQuarter;
             if (algorithm == L"Lines") {
-                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, bcolor);
                 FillingCircleWithLines(hdc, Xc, Yc, R, quarter, 3, color);
             }
             else if (algorithm == L"Circle") {
-                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, bcolor);
                 FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, 3, color);
             }
             clickPoints.clear();
@@ -529,16 +529,30 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Convex Fill") {
             if (algorithm == L"Scanline") {
-                std::vector<Point> testConvex = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
-                CurveFill(hdc, testConvex, color);
+                /*std::vector<Point> testConvex = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
+                CurveFill(hdc, testConvex, color);*/
+
+                vector <Point> points;
+                for (int i = 0; i < clickPoints.size(); i++) {
+                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
+                }
+                CurveFill(hdc, points, color);
+                points.clear();
             }
             clickPoints.clear();
             clickCount = 0;
         }
         else if (shape == L"Non-Convex Fill") {
             if (algorithm == L"Polygon Fill") {
-                std::vector<Point> testPolygon = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
-                FillPolygon(hdc, color, testPolygon);
+                /*std::vector<Point> testPolygon = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
+                FillPolygon(hdc, color, testPolygon);*/ 
+
+                vector <Point> points;
+                for (int i = 0; i < clickPoints.size(); i++) {
+                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
+                }
+                FillPolygon(hdc, color, points);
+                points.clear();
             }
             clickPoints.clear();
             clickCount = 0;
@@ -556,6 +570,7 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             else if (algorithm == L"Non-Recursive") FloodFillNonRecursive(hdc, seedX, seedY, bc, bcolor, color);
             clickPoints.clear();
             clickCount = 0;
+
         }
         else if (shape == L"Cardinal Spline Curve") {
             if (algorithm == L"Curve Algorithm") {
