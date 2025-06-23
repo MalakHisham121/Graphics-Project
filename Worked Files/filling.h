@@ -26,6 +26,21 @@ void FloodFillRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF borderColor
 
     // Fill only pixels that are background color
     if (C != bc) return;
+    int counter = 0;
+    COLORREF C1 = GetPixel(hdc, x+1, y);
+    COLORREF C2 = GetPixel(hdc, x-1, y);
+    COLORREF C3 = GetPixel(hdc, x, y+1);
+    COLORREF C4 = GetPixel(hdc, x, y-1);
+    if(C1==borderColor)
+        counter++;
+    if(C2==borderColor)
+        counter++;
+    if(C3==borderColor)
+        counter++;
+    if(C4==borderColor)
+        counter++;
+    if(counter>=2)
+        return;
 
     SetPixel(hdc, x, y, fc);
 
@@ -33,9 +48,12 @@ void FloodFillRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF borderColor
     FloodFillRecursive(hdc, x - 1, y, bc, borderColor, fc);
     FloodFillRecursive(hdc, x, y + 1, bc, borderColor, fc);
     FloodFillRecursive(hdc, x, y - 1, bc, borderColor, fc);
+    return;
 }
 
 const int MAX_FILL_POINTS = 1000000;
+
+
 
 void FloodFillNonRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF borderColor, COLORREF fc)
 {
@@ -53,8 +71,25 @@ void FloodFillNonRecursive(HDC hdc, int x, int y, COLORREF bc, COLORREF borderCo
         if (C == borderColor || C == fc) continue;
 
         if (C != bc) continue;
+        int counter = 0;
+    COLORREF C1 = GetPixel(hdc, p.x+1, p.y);
+    COLORREF C2 = GetPixel(hdc, p.x-1, p.y);
+    COLORREF C3 = GetPixel(hdc, p.x, p.y+1);
+    COLORREF C4 = GetPixel(hdc, p.x, p.y-1);
+    if(C1==borderColor)
+        counter++;
+    if(C2==borderColor)
+        counter++;
+    if(C3==borderColor)
+        counter++;
+    if(C4==borderColor)
+        counter++;
+    if(counter>=2)
+        continue;
 
         SetPixel(hdc, p.x, p.y, fc);
+        
+
 
         st.push({ p.x + 1, p.y });
         st.push({ p.x - 1, p.y });
