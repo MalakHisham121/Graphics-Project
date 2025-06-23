@@ -29,6 +29,7 @@ HFONT hFontLarge, hFontMedium, hFontSmall;
 HCURSOR currentCursor = LoadCursorW(NULL, IDC_ARROW);
 HBRUSH drawingBackgroundBrush = CreateSolidBrush(RGB(255, 255, 255));
 HWND hDrawingWindow = NULL;
+HWND hQuarterCombo;
 HBITMAP g_hBitmap = NULL;  // Global handle to store the loaded bitmap
 bool clear = false;
 std::wstring algorithm = L"";
@@ -42,9 +43,6 @@ int X1, Y1, X2, Y2;
 int Xc, Yc, R;
 int selectQuarter = 1;
 
-std::vector<POINT> LineMidpoint, LineParametric, LineDirect, CircleDirect, CirclePolar,
-CircleIterativePolar, CircleMidpoint, CircleModifiedMidpoint, CircleFillWithLines,
-CircleWithCircles, HermitCurve, Square;
 
 std::map<std::wstring, std::vector<std::wstring>> shapeAlgorithmMap = {
     {L"Line", {L"DDA", L"Midpoint", L"Parametric"}},
@@ -77,52 +75,64 @@ void drawUI(HWND hwnd) {
     HWND hRibbon = CreateWindowExW(0, L"STATIC", L"Graphics GUI", WS_CHILD | WS_VISIBLE, 10, 10, 200, 30, hwnd, NULL, NULL, NULL);
     SendMessageW(hRibbon, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hWelcome = CreateWindowExW(0, L"STATIC", L"Welcome to Our Drawing Program!", WS_CHILD | WS_VISIBLE | SS_CENTER, 5, 60, 590, 30, hwnd, (HMENU)ID_STATIC_WELCOME, NULL, NULL);
+    HWND hWelcome = CreateWindowExW(0, L"STATIC", L"Welcome to Our Drawing Program!", WS_CHILD | WS_VISIBLE | SS_CENTER, 5, 55, 590, 30, hwnd, (HMENU)ID_STATIC_WELCOME, NULL, NULL);
     SendMessageW(hWelcome, WM_SETFONT, (WPARAM)hFontLarge, TRUE);
 
-    HWND hShapeLabel = CreateWindowExW(0, L"STATIC", L"Shape:", WS_CHILD | WS_VISIBLE, 80, 120, 120, 25, hwnd, NULL, NULL, NULL);
+    HWND hShapeLabel = CreateWindowExW(0, L"STATIC", L"Shape:", WS_CHILD | WS_VISIBLE, 80, 100, 120, 25, hwnd, NULL, NULL, NULL);
     SendMessageW(hShapeLabel, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hShapeBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 120, 250, 200, hwnd, (HMENU)ID_COMBO_SHAPE, NULL, NULL);
+    HWND hShapeBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 100, 250, 200, hwnd, (HMENU)ID_COMBO_SHAPE, NULL, NULL);
     SendMessageW(hShapeBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hAlgorithm = CreateWindowExW(0, L"STATIC", L"Algorithm:", WS_CHILD | WS_VISIBLE, 80, 150, 120, 25, hwnd, NULL, NULL, NULL);
+    HWND hAlgorithm = CreateWindowExW(0, L"STATIC", L"Algorithm:", WS_CHILD | WS_VISIBLE, 80, 140, 120, 25, hwnd, NULL, NULL, NULL);
     SendMessageW(hAlgorithm, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hAlgBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 150, 250, 200, hwnd, (HMENU)ID_COMBO_ALG, NULL, NULL);
+    HWND hAlgBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 140, 250, 200, hwnd, (HMENU)ID_COMBO_ALG, NULL, NULL);
     SendMessageW(hAlgBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hShapeColor = CreateWindowExW(0, L"STATIC", L"Shape Color:", WS_CHILD | WS_VISIBLE, 80, 190, 120, 25, hwnd, NULL, NULL, NULL);
+    HWND hShapeColor = CreateWindowExW(0, L"STATIC", L"Shape Color:", WS_CHILD | WS_VISIBLE, 80, 180, 120, 25, hwnd, NULL, NULL, NULL);
     SendMessageW(hShapeColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hShapeColorBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 190, 250, 200, hwnd, (HMENU)ID_COMBO_COLOR, NULL, NULL);
+    HWND hShapeColorBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 180, 250, 200, hwnd, (HMENU)ID_COMBO_COLOR, NULL, NULL);
     SendMessageW(hShapeColorBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hMouse = CreateWindowExW(0, L"STATIC", L"Mouse Shape:", WS_CHILD | WS_VISIBLE, 80, 230, 120, 25, hwnd, NULL, NULL, NULL);
+    HWND hMouse = CreateWindowExW(0, L"STATIC", L"Mouse Shape:", WS_CHILD | WS_VISIBLE, 80, 220, 120, 25, hwnd, NULL, NULL, NULL);
     SendMessageW(hMouse, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hMouseBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 230, 250, 200, hwnd, (HMENU)ID_COMBO_CURSOR, NULL, NULL);
+    HWND hMouseBox = CreateWindowExW(0, L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST, 270, 220, 250, 200, hwnd, (HMENU)ID_COMBO_CURSOR, NULL, NULL);
     SendMessageW(hMouseBox, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    HWND hQuarter = CreateWindowExW(0, L"STATIC", L"Circle Shape:", WS_CHILD | WS_VISIBLE, 80, 260, 120, 25, hwnd, NULL, NULL, NULL);
+    SendMessageW(hQuarter, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    
+    hQuarterCombo = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL, 270, 260, 250, 200, hwnd, (HMENU)ID_QUARTER_COMBO, NULL, NULL); ///
+    SendMessageW(hQuarterCombo, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
+    SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"1");
+    SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"2");
+    SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"3");
+    SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"4");
+    SendMessageW(hQuarterCombo, CB_SETCURSEL, 0, 0);
+    //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    HWND hBackground = CreateWindowExW(0, L"BUTTON", L"Change Background Color", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 300, 270, 25, hwnd, (HMENU)ID_BTN_WHITE_BG, NULL, NULL);
+    HWND hBackground = CreateWindowExW(0, L"BUTTON", L"Change Background Color", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 310, 270, 25, hwnd, (HMENU)ID_BTN_WHITE_BG, NULL, NULL);
     SendMessageW(hBackground, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hCustomColor = CreateWindowW(L"BUTTON", L"Custom Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 456, 300, 120, 25, hwnd, (HMENU)IDC_CUSTOM_COLOR_BUTTON, NULL, NULL);
+    HWND hCustomColor = CreateWindowW(L"BUTTON", L"Custom Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 456, 310, 120, 25, hwnd, (HMENU)IDC_CUSTOM_COLOR_BUTTON, NULL, NULL);
     SendMessageW(hCustomColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hCustomBColor = CreateWindowW(L"BUTTON", L"Border Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 24, 300, 120, 25, hwnd, (HMENU)IDC_CUSTOM_BCOLOR_BUTTON, NULL, NULL);
+    HWND hCustomBColor = CreateWindowW(L"BUTTON", L"Border Color", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_CENTER | BS_VCENTER, 24, 310, 120, 25, hwnd, (HMENU)IDC_CUSTOM_BCOLOR_BUTTON, NULL, NULL);
     SendMessageW(hCustomBColor, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hClear = CreateWindowExW(0, L"BUTTON", L"Clear Screen", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 24, 350, 120, 25, hwnd, (HMENU)ID_BTN_CLEAR, NULL, NULL);
+    HWND hClear = CreateWindowExW(0, L"BUTTON", L"Clear Screen", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 24, 360, 120, 25, hwnd, (HMENU)ID_BTN_CLEAR, NULL, NULL);
     SendMessageW(hClear, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hDrawButton = CreateWindowExW(0, L"BUTTON", L"Draw", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 350, 120, 25, hwnd, (HMENU)ID_BTN_DRAW, NULL, NULL);
+    HWND hDrawButton = CreateWindowExW(0, L"BUTTON", L"Draw", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 168, 360, 120, 25, hwnd, (HMENU)ID_BTN_DRAW, NULL, NULL);
     SendMessageW(hDrawButton, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hSave = CreateWindowExW(0, L"BUTTON", L"Save to File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 312, 350, 120, 25, hwnd, (HMENU)ID_BTN_SAVE, NULL, NULL);
+    HWND hSave = CreateWindowExW(0, L"BUTTON", L"Save to File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 312, 360, 120, 25, hwnd, (HMENU)ID_BTN_SAVE, NULL, NULL);
     SendMessageW(hSave, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 
-    HWND hLoad = CreateWindowExW(0, L"BUTTON", L"Load from File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 456, 350, 120, 25, hwnd, (HMENU)ID_BTN_LOAD, NULL, NULL);
+    HWND hLoad = CreateWindowExW(0, L"BUTTON", L"Load from File", WS_CHILD | WS_VISIBLE | BS_CENTER | BS_VCENTER, 456, 360, 120, 25, hwnd, (HMENU)ID_BTN_LOAD, NULL, NULL);
     SendMessageW(hLoad, WM_SETFONT, (WPARAM)hFontMedium, TRUE);
 }
 
@@ -319,20 +329,6 @@ void OpenBitmapFile(HWND hwnd) {
 
 
 
-// void DrawClippingWindow(HDC hdc) {
-//     if (clipWindowDefined) {
-//         if (currentWindow == RECTANGLE) {
-//             DrawRectangle(hdc, clipRect.X_min, clipRect.Y_min, clipRect.X_max - clipRect.X_min, clipRect.Y_max - clipRect.Y_min, bcolor);
-//         }
-//         else if (currentWindow == SQUARE) {
-//             DrawSquare(hdc, clipRect.X_min, clipRect.Y_min, clipRect.Y_max - clipRect.Y_min, bcolor);
-//         }
-//         else if (currentWindow == CIRCLE) {
-//             DrawCircleMidpoint(hdc, clipCircle.xc, clipCircle.yc, clipCircle.r, bcolor);
-//         }
-//     }
-// }
-
 LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     static HDC hdc;
     static PAINTSTRUCT ps;
@@ -341,21 +337,21 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 
     switch (msg) {
     case WM_CREATE: {
-        hQuarterCombo = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL, 10, 10, 100, 100, hwnd, (HMENU)ID_QUARTER_COMBO, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
+        /*hQuarterCombo = CreateWindowW(L"COMBOBOX", NULL, CBS_DROPDOWNLIST | WS_CHILD | WS_VISIBLE | WS_VSCROLL, 10, 10, 100, 100, hwnd, (HMENU)ID_QUARTER_COMBO, ((LPCREATESTRUCT)lParam)->hInstance, NULL);
         SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"1");
         SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"2");
         SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"3");
         SendMessageW(hQuarterCombo, CB_ADDSTRING, 0, (LPARAM)L"4");
-        SendMessageW(hQuarterCombo, CB_SETCURSEL, 0, 0);
+        SendMessageW(hQuarterCombo, CB_SETCURSEL, 0, 0);*/
         break;
     }
     case WM_COMMAND: {
-        if (LOWORD(wParam) == ID_QUARTER_COMBO && HIWORD(wParam) == CBN_SELCHANGE) {
+        /*if (LOWORD(wParam) == ID_QUARTER_COMBO && HIWORD(wParam) == CBN_SELCHANGE) {
             int index = SendMessageW(hQuarterCombo, CB_GETCURSEL, 0, 0);
             if (index != CB_ERR) {
                 selectQuarter = index + 1;
             }
-        }
+        }*/
         break;
     }
     case WM_LBUTTONDOWN: {
@@ -496,11 +492,11 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         else if (shape == L"Circle Fill") {
             int quarter = selectQuarter;
             if (algorithm == L"Lines") {
-                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, bcolor);
                 FillingCircleWithLines(hdc, Xc, Yc, R, quarter, 3, color);
             }
             else if (algorithm == L"Circle") {
-                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, RGB(0, 0, 0));
+                DrawCircleModifiedMidpoint(hdc, Xc, Yc, R, bcolor);
                 FillingCircleWithCircles(hdc, Xc, Yc, R, quarter, 3, color);
             }
             clickPoints.clear();
@@ -533,16 +529,30 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         }
         else if (shape == L"Convex Fill") {
             if (algorithm == L"Scanline") {
-                std::vector<Point> testConvex = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
-                CurveFill(hdc, testConvex, color);
+                /*std::vector<Point> testConvex = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
+                CurveFill(hdc, testConvex, color);*/
+
+                vector <Point> points;
+                for (int i = 0; i < clickPoints.size(); i++) {
+                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
+                }
+                CurveFill(hdc, points, color);
+                points.clear();
             }
             clickPoints.clear();
             clickCount = 0;
         }
         else if (shape == L"Non-Convex Fill") {
             if (algorithm == L"Polygon Fill") {
-                std::vector<Point> testPolygon = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
-                FillPolygon(hdc, color, testPolygon);
+                /*std::vector<Point> testPolygon = { {100, 100}, {200, 100}, {150, 200}, {170, 250}, {90, 250} };
+                FillPolygon(hdc, color, testPolygon);*/ 
+
+                vector <Point> points;
+                for (int i = 0; i < clickPoints.size(); i++) {
+                    points.push_back(Point(clickPoints[i].X, clickPoints[i].Y));
+                }
+                FillPolygon(hdc, color, points);
+                points.clear();
             }
             clickPoints.clear();
             clickCount = 0;
@@ -560,14 +570,23 @@ LRESULT CALLBACK DrawingWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
             else if (algorithm == L"Non-Recursive") FloodFillNonRecursive(hdc, seedX, seedY, bc, bcolor, color);
             clickPoints.clear();
             clickCount = 0;
+
         }
         else if (shape == L"Cardinal Spline Curve") {
             if (algorithm == L"Curve Algorithm") {
-                CardinalSplineCurve(hdc, clickPoints, 0.5, color);
+                vector<Point> points;
+                for (int i = 0; i < clickPoints.size(); i++) {
+                    points.push_back(clickPoints[i]);
+                }
+                if (points.size() >= 4) {
+                    CardinalSplineCurve(hdc, points, 0.5, color);
+                }
+                points.clear();
             }
             clickPoints.clear();
             clickCount = 0;
         }
+
         else if (shape == L"Ellipse") {
             int dx = X2 - X1;
             int dy = Y2 - Y1;
@@ -685,7 +704,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             return (INT_PTR)hBrush;
         }
         if (id == ID_STATIC_WELCOME) {
-            SetTextColor(hdcStatic, RGB(0, 0, 255));
+            SetTextColor(hdcStatic, RGB(0, 0, 0));
             SetBkColor(hdcStatic, RGB(255, 255, 255));
             static HBRUSH whiteBrush = CreateSolidBrush(RGB(255, 255, 255));
             return (INT_PTR)whiteBrush;
@@ -823,6 +842,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         // Load btn
         if (LOWORD(wParam) == ID_BTN_LOAD) {
             OpenBitmapFile(hDrawingWindow);
+        }
+
+        // Quarter drop-down
+        if (LOWORD(wParam) == ID_QUARTER_COMBO && HIWORD(wParam) == CBN_SELCHANGE) {
+            int index = SendMessageW(hQuarterCombo, CB_GETCURSEL, 0, 0);
+            if (index != CB_ERR) {
+                selectQuarter = index + 1;
+            }
         }
 
         break;

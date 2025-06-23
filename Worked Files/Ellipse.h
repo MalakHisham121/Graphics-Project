@@ -26,7 +26,8 @@ void DirectEllipse(HDC hdc, int a, int b, int Xc, int Yc, COLORREF c) {
 }
 
 void PolarEllipse(HDC hdc, int a, int b, int Xc, int Yc, COLORREF c) {
-    for (double theta = 0; theta <= pi / 2; theta += 0.01) {
+    double delta = 1.0 / max(a, b);
+    for (double theta = 0; theta <= pi / 2; theta += delta) {
         int x = (int)(a * cos(theta));
         int y = (int)(b * sin(theta));
         Draw4Pixel(hdc, x, y, Xc, Yc, c);
